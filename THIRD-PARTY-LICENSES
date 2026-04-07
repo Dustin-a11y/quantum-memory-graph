@@ -1,0 +1,26 @@
+Third-Party Licenses
+====================
+
+MemPalace
+---------
+Copyright (c) 2025 Ben Sigman (@bensig)
+License: MIT
+Repository: https://github.com/milla-jovovich/mempalace
+Description: Memory palace storage and retrieval system for AI agents.
+Used as: pip dependency for verbatim memory storage and ChromaDB retrieval.
+
+Qiskit
+------
+Copyright (c) IBM Corporation and contributors
+License: Apache 2.0
+Repository: https://github.com/Qiskit/qiskit
+Description: Open-source SDK for quantum computing.
+Used as: pip dependency for QAOA circuit construction and simulation.
+
+Qiskit Aer
+----------
+Copyright (c) IBM Corporation and contributors
+License: Apache 2.0
+Repository: https://github.com/Qiskit/qiskit-aer
+Description: High-performance quantum computing simulators.
+Used as: pip dependency for quantum circuit simulation.

@@ -1,0 +1,44 @@
+[build-system]
+requires = ["setuptools>=68.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "quantum-memory-graph"
+version = "0.1.0"
+description = "Quantum-optimized knowledge graph memory for AI agents. Relationship-aware subgraph selection via QAOA."
+readme = "README.md"
+license = {text = "MIT"}
+requires-python = ">=3.9"
+authors = [
+    {name = "Coinkong (Chef's Attraction)"}
+]
+keywords = ["quantum", "memory", "knowledge-graph", "agents", "qaoa", "ai"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+]
+dependencies = [
+    "mempalace>=3.0.0",
+    "quantum-agent-memory>=0.1.0",
+    "sentence-transformers>=2.2.0",
+    "networkx>=3.0",
+    "numpy>=1.24.0",
+    "qiskit>=1.0.0",
+    "qiskit-aer>=0.13.0",
+]
+
+[project.optional-dependencies]
+api = ["fastapi>=0.100.0", "uvicorn>=0.20.0"]
+ibm = ["qiskit-ibm-runtime>=0.20.0"]
+dev = ["pytest>=7.0.0", "pytest-cov>=4.0.0"]
+
+[project.urls]
+Homepage = "https://github.com/Dustin-a11y/quantum-memory-graph"
+Repository = "https://github.com/Dustin-a11y/quantum-memory-graph"
+Issues = "https://github.com/Dustin-a11y/quantum-memory-graph/issues"
+
+[tool.setuptools.packages.find]
+include = ["quantum_memory_graph*"]
