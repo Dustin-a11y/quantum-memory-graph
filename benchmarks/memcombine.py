@@ -154,8 +154,8 @@ def evaluate_combination(selected_ids: List[int], scenario: Dict) -> Dict:
     # Facet coverage: what percentage of required facets are covered?
     covered_facets = []
     for facet in facets:
-        required_mem = facet_map[facet]
-        if required_mem in selected_set:
+        required_mem = facet_map.get(facet)
+        if required_mem is not None and required_mem in selected_set:
             covered_facets.append(facet)
     
     coverage = len(covered_facets) / len(facets) if facets else 0

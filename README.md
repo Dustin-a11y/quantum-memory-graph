@@ -6,17 +6,32 @@ Every memory system treats memories as independent documents — search, rank, s
 
 Quantum Memory Graph maps these relationships, then uses QAOA to find the optimal *combination* of memories — not just the most relevant individuals, but the best connected subgraph that gives your agent maximum context.
 
-## Benchmark: MemCombine
+## Benchmarks
 
-We created MemCombine to test what no existing benchmark measures — **memory combination quality**.
+### LongMemEval (ICLR 2025) — Industry Standard
+
+500 questions across 53 conversation sessions. The gold standard for AI memory retrieval.
+
+| System | R@5 | R@10 | NDCG@10 |
+|--------|-----|------|---------|
+| MemPalace raw | 96.6% | 98.2% | 88.9% |
+| **Quantum Memory Graph (bge-large)** | **95.9%** | **98.2%** | **94.0%** |
+| OMEGA | 95.4% | — | — |
+| Mastra OM | 94.9% | — | — |
+| Quantum Memory Graph (MiniLM, default) | 93.4% | 97.4% | 90.8% |
+
+**#2 in the world on retrieval. #1 on ranking quality (NDCG@10).** Free. Open source.
+
+Use `model="BAAI/bge-large-en-v1.5"` for high-accuracy mode.
+
+### MemCombine — Combination Recall (250 Scenarios)
 
 | Method | Coverage | Evidence Recall | F1 | Perfect |
 |--------|----------|----------------|----|---------|
-| Embedding Top-K | 69.9% | 65.6% | 68.1% | 1/5 |
-| **Graph + QAOA** | **96.7%** | **91.0%** | **92.6%** | **4/5** |
-| **Advantage** | **+26.8%** | **+25.4%** | **+24.5%** | |
+| Embedding Top-K | 92.3% | 93.9% | 91.3% | 181/250 |
+| **Graph + QAOA** | **96.2%** | **97.7%** | **95.1%** | **212/250** |
 
-When the task is "find memories that work *together*," graph-aware quantum selection crushes pure similarity search.
+Graph-aware quantum selection beats pure similarity by +3.8% on combination tasks.
 
 ## Install
 

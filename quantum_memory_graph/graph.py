@@ -20,6 +20,14 @@ from typing import List, Dict, Optional, Tuple
 from dataclasses import dataclass, field
 from datetime import datetime
 
+try:
+    import spacy
+    _nlp = spacy.load("en_core_web_sm")
+    _HAS_SPACY = True
+except (ImportError, OSError):
+    _nlp = None
+    _HAS_SPACY = False
+
 
 @dataclass
 class Memory:
@@ -49,17 +57,23 @@ class MemoryGraph:
       - causal: A references or builds on B
     """
 
-    def __init__(self, similarity_threshold: float = 0.3):
+    # Supported models (user can pass any sentence-transformers model name)
+    DEFAULT_MODEL = 'sentence-transformers/all-MiniLM-L6-v2'
+    HIGH_ACCURACY_MODEL = 'BAAI/bge-large-en-v1.5'
+
+    def __init__(self, similarity_threshold: float = 0.3, model: str = None):
         self.graph = nx.Graph()
         self.memories: Dict[str, Memory] = {}
         self.similarity_threshold = similarity_threshold
+        self._model_name = model or self.DEFAULT_MODEL
         self._embedder = None
+        self._is_bge = 'bge' in self._model_name.lower()
 
     @property
     def embedder(self):
         if self._embedder is None:
             from sentence_transformers import SentenceTransformer
-            self._embedder = SentenceTransformer('all-MiniLM-L6-v2')
+            self._embedder = SentenceTransformer(self._model_name)
         return self._embedder
 
     def add_memory(self, text: str, entities: List[str] = None,
@@ -187,7 +201,51 @@ class MemoryGraph:
         return weight, types
 
     def _extract_entities(self, text: str) -> List[str]:
-        """Simple entity extraction (proper nouns, capitalized phrases)."""
+        """Extract entities using spaCy NER (with fallback to heuristic)."""
+        if _HAS_SPACY:
+            return self._extract_entities_spacy(text)
+        return self._extract_entities_heuristic(text)
+
+    def _extract_entities_spacy(self, text: str) -> List[str]:
+        """NER extraction via spaCy — finds people, orgs, products, tech."""
+        doc = _nlp(text[:1000])  # Cap for speed
+        entities = set()
+
+        # Named entities from spaCy
+        for ent in doc.ents:
+            if ent.label_ in ('PERSON', 'ORG', 'PRODUCT', 'GPE', 'FAC',
+                              'EVENT', 'WORK_OF_ART', 'LAW', 'NORP'):
+                entities.add(ent.text.strip())
+
+        # Also extract noun chunks that look like technical terms
+        for chunk in doc.noun_chunks:
+            # Keep noun chunks with proper nouns or technical terms
+            if any(tok.pos_ == 'PROPN' for tok in chunk):
+                entities.add(chunk.text.strip())
+            elif any(tok.text[0].isupper() and len(tok.text) > 1
+                     for tok in chunk if tok.pos_ not in ('DET', 'ADP')):
+                clean = ' '.join(tok.text for tok in chunk
+                                if tok.pos_ not in ('DET', 'ADP', 'PUNCT'))
+                if clean and len(clean) > 1:
+                    entities.add(clean.strip())
+
+        # Extract technical terms (CamelCase, acronyms, dash-compounds)
+        for tok in doc:
+            word = tok.text
+            if (len(word) > 1 and word[0].isupper() and
+                    any(c.islower() for c in word) and
+                    any(c.isupper() for c in word[1:])):
+                entities.add(word)  # CamelCase: FastAPI, PostgreSQL
+            elif word.isupper() and len(word) >= 2 and word.isalpha():
+                entities.add(word)  # Acronyms: API, CI, CD, JWT
+
+        # Filter out common non-entities
+        stopwords = {'The', 'This', 'That', 'These', 'Step', 'Phase',
+                     'Part', 'Section', 'Note', 'FYI', 'OK', 'IT'}
+        return [e for e in entities if e not in stopwords and len(e) > 1]
+
+    def _extract_entities_heuristic(self, text: str) -> List[str]:
+        """Fallback: extract capitalized phrases as entities."""
         entities = []
         words = text.split()
         i = 0
@@ -205,7 +263,6 @@ class MemoryGraph:
                                     'My', 'His', 'Her', 'Our', 'Your',
                                     'What', 'When', 'Where', 'How', 'Why',
                                     'Who', 'Which')):
-                # Collect multi-word entity
                 entity_parts = [word]
                 j = i + 1
                 while j < len(words):

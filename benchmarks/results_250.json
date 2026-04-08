@@ -1,0 +1,32 @@
+{
+  "benchmark": "MemCombine",
+  "scenarios": 250,
+  "K": 5,
+  "topk": {
+    "coverage": 0.9232000000000006,
+    "evidence_recall": 0.9392000000000001,
+    "f1": 0.9125333333333329,
+    "perfect": 181,
+    "perfect_pct": 72.39999999999999
+  },
+  "default": {
+    "coverage": 0.9620000000000003,
+    "evidence_recall": 0.9773999999999999,
+    "f1": 0.9512888888888884,
+    "perfect": 211,
+    "perfect_pct": 84.39999999999999
+  },
+  "tuned": {
+    "coverage": 0.9616000000000003,
+    "evidence_recall": 0.977,
+    "f1": 0.9506666666666662,
+    "perfect": 212,
+    "perfect_pct": 84.8
+  },
+  "params": {
+    "alpha": 0.3,
+    "beta_conn": 0.25,
+    "gamma_cov": 0.15,
+    "threshold": 0.15
+  }
+}
