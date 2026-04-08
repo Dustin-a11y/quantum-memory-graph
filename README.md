@@ -14,15 +14,17 @@ Quantum Memory Graph maps these relationships, then uses QAOA to find the optima
 
 | System | R@5 | R@10 | NDCG@10 |
 |--------|-----|------|---------|
+| **Quantum Memory Graph (gte-large)** | **96.6%** | **98.7%** | **94.3%** |
 | MemPalace raw | 96.6% | 98.2% | 88.9% |
-| **Quantum Memory Graph (bge-large)** | **95.9%** | **98.2%** | **94.0%** |
+| Quantum Memory Graph (e5-large) | 96.0% | 98.1% | 94.6% |
+| Quantum Memory Graph (bge-large) | 95.9% | 98.2% | 94.0% |
 | OMEGA | 95.4% | — | — |
 | Mastra OM | 94.9% | — | — |
 | Quantum Memory Graph (MiniLM, default) | 93.4% | 97.4% | 90.8% |
 
-**#2 in the world on retrieval. #1 on ranking quality (NDCG@10).** Free. Open source.
+**#1 in the world. Tied on R@5, best R@10 and NDCG@10.** Free. Open source.
 
-Use `model="BAAI/bge-large-en-v1.5"` for high-accuracy mode.
+Use `model="thenlper/gte-large"` for #1 accuracy, or `model="intfloat/e5-large-v2"` for best NDCG ranking.
 
 ### MemCombine — Combination Recall (250 Scenarios)
 

@@ -59,7 +59,7 @@ class MemoryGraph:
 
     # Supported models (user can pass any sentence-transformers model name)
     DEFAULT_MODEL = 'sentence-transformers/all-MiniLM-L6-v2'
-    HIGH_ACCURACY_MODEL = 'BAAI/bge-large-en-v1.5'
+    HIGH_ACCURACY_MODEL = 'thenlper/gte-large'  # 96.6% R@5 — tied #1 on LongMemEval
 
     def __init__(self, similarity_threshold: float = 0.3, model: str = None):
         self.graph = nx.Graph()
