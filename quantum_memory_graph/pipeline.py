@@ -14,10 +14,12 @@ from datetime import datetime
 
 from .graph import MemoryGraph
 from .subgraph_optimizer import optimize_subgraph
+from .recency import ShortTermMemory
 
 
 # Module-level default graph instance
 _default_graph: Optional[MemoryGraph] = None
+_default_stm: Optional[ShortTermMemory] = None
 
 
 def get_graph(similarity_threshold: float = 0.3) -> MemoryGraph:
@@ -32,6 +34,20 @@ def set_graph(graph: MemoryGraph):
     """Set a custom graph as the default."""
     global _default_graph
     _default_graph = graph
+
+
+def get_stm(**kwargs) -> ShortTermMemory:
+    """Get or create the default short-term memory layer."""
+    global _default_stm
+    if _default_stm is None:
+        _default_stm = ShortTermMemory(**kwargs)
+    return _default_stm
+
+
+def set_stm(stm: ShortTermMemory):
+    """Set a custom short-term memory layer."""
+    global _default_stm
+    _default_stm = stm
 
 
 def store(
@@ -64,6 +80,10 @@ def store(
         text=text, entities=entities, timestamp=timestamp,
         source=source, metadata=metadata,
     )
+    
+    # Update short-term memory
+    stm = get_stm()
+    stm.on_store(memory.id, text, timestamp)
     
     # Count edges for this memory
     edges = list(g.graph.edges(memory.id, data=True))
@@ -117,6 +137,8 @@ def recall(
     gamma_cov: float = 0.25,
     graph: MemoryGraph = None,
     max_candidates: int = 14,
+    use_recency: bool = True,
+    stm: ShortTermMemory = None,
 ) -> Dict:
     """
     Recall optimal memories for a query.
@@ -156,7 +178,12 @@ def recall(
     if not neighborhood:
         return {"ok": True, "memories": [], "method": "no_matches"}
     
-    # Sort by combined score (embedding + graph traversal)
+    # Apply short-term memory boosts (recency, conversation context)
+    if use_recency:
+        _stm = stm or get_stm()
+        neighborhood = _stm.apply(neighborhood, g.memories)
+    
+    # Sort by combined score (embedding + graph traversal + recency)
     sorted_candidates = sorted(
         neighborhood.items(), key=lambda x: x[1], reverse=True
     )[:max_candidates]
