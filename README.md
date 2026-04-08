@@ -35,6 +35,27 @@ Use `model="thenlper/gte-large"` for #1 accuracy, or `model="intfloat/e5-large-v
 
 Graph-aware quantum selection beats pure similarity by +3.8% on combination tasks.
 
+## Choosing a Model
+
+| Model | Size | GPU? | R@5 | Best For |
+|-------|------|------|-----|----------|
+| `all-MiniLM-L6-v2` (default) | 90MB | No | 93.4% | Laptops, CI/CD, quick prototyping |
+| `BAAI/bge-large-en-v1.5` | 1.3GB | Recommended | 95.9% | Production servers with GPU |
+| `intfloat/e5-large-v2` | 1.3GB | Recommended | 96.0% | Best ranking quality (NDCG) |
+| `thenlper/gte-large` | 1.3GB | Recommended | 96.6% | Maximum retrieval accuracy |
+
+```python
+from quantum_memory_graph import MemoryGraph
+
+# Default — works everywhere, no GPU needed
+mg = MemoryGraph()
+
+# High accuracy — needs ~2GB RAM, GPU speeds it up 60x
+mg = MemoryGraph(model="thenlper/gte-large")
+```
+
+The default model runs on any machine. Larger models need more RAM and benefit from a GPU but aren't required — they'll just be slower on CPU.
+
 ## Install
 
 ```bash
