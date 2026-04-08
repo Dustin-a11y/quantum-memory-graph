@@ -22,7 +22,7 @@ Quantum Memory Graph maps these relationships, then uses QAOA to find the optima
 | Mastra OM | 94.9% | — | — |
 | Quantum Memory Graph (MiniLM, default) | 93.4% | 97.4% | 90.8% |
 
-**#1 in the world. Tied on R@5, best R@10 and NDCG@10.** Free. Open source.
+**#1 to our knowledge. Tied on R@5, best R@10 and NDCG@10 among published results.** Free. Open source.
 
 Use `model="thenlper/gte-large"` for #1 accuracy, or `model="intfloat/e5-large-v2"` for best NDCG ranking.
 
