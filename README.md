@@ -203,6 +203,66 @@ results = run_benchmark(my_recall, K=5)
 print(f"Coverage: {results['avg_coverage']*100:.1f}%")
 ```
 
+## Deploying for AI Agents
+
+### Replace Your Current Memory System
+
+QMG is a drop-in upgrade for existing memory systems (Mem0, LangChain memory, custom RAG):
+
+```python
+# Before (typical flat similarity search)
+results = memory.search("What's the tech stack?", k=5)
+
+# After (graph-aware combination retrieval)
+from quantum_memory_graph import store, recall
+
+result = recall("What's the tech stack?", K=5)
+# Returns connected memory clusters, not just individual matches
+```
+
+### Run as a Microservice
+
+Deploy the API server for multiple agents to share:
+
+```bash
+pip install quantum-memory-graph[api]
+
+# Default model (lightweight, no GPU)
+python -m quantum_memory_graph.api --port 8502
+
+# High accuracy (needs GPU for best speed)
+QMG_MODEL=thenlper/gte-large python -m quantum_memory_graph.api --port 8502
+```
+
+Then from any agent:
+```python
+import requests
+
+# Store a memory
+requests.post("http://localhost:8502/store", json={"text": "User prefers dark mode"})
+
+# Recall with graph + QAOA
+result = requests.post("http://localhost:8502/recall", json={"query": "What are the user's preferences?", "K": 5})
+```
+
+### Migrate from Mem0 / LangChain
+
+```python
+from quantum_memory_graph import store
+
+# Export your existing memories and bulk import
+for memory in existing_memories:
+    store(memory["text"], metadata=memory.get("metadata"))
+# Graph connections are built automatically during import
+```
+
+### Production Tips
+
+- **Shared API server**: Run one instance, point all agents at it. The knowledge graph is shared — Agent A's memories help Agent B's recall.
+- **Model choice**: Use `gte-large` on GPU servers (96.6% accuracy). Use default `MiniLM` on laptops or CI (93.4%, no GPU needed).
+- **Batch import**: Use `/store-batch` endpoint for bulk migration — 10x faster than individual stores.
+- **Persistence**: Graph state saves to disk automatically. Restart the server without losing memories.
+
 ## IBM Quantum Hardware
 
 For production workloads, run QAOA on real quantum hardware:
