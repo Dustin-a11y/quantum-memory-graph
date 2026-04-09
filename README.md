@@ -1,10 +1,12 @@
 # Quantum Memory Graph ⚛️🧠
 
-**Relationship-aware memory for AI agents. Knowledge graphs + quantum-optimized subgraph selection.**
+**Relationship-aware memory for AI agents. Knowledge graphs + QAOA-inspired combinatorial optimization.**
 
 Every memory system treats memories as independent documents — search, rank, stuff into context. But memories aren't independent. They have *relationships*. "The team chose React" becomes 10x more useful paired with "because of ecosystem maturity" and "FastAPI handles the backend."
 
-Quantum Memory Graph maps these relationships, then uses QAOA to find the optimal *combination* of memories — not just the most relevant individuals, but the best connected subgraph that gives your agent maximum context.
+Quantum Memory Graph maps these relationships, then uses a QAOA-inspired optimizer to select the best *combination* of memories — not just the most relevant individuals, but the best connected subgraph that gives your agent maximum context.
+
+> **Note:** The default optimizer runs a simulated QAOA circuit (via Qiskit Aer). For real quantum hardware, install the `[ibm]` extra. The core value is in the knowledge graph and relationship-aware retrieval — the quantum circuit acts as a combinatorial reranker over a small candidate set (default 14) selected by classical embedding search.
 
 ## Benchmarks
 
@@ -114,9 +116,9 @@ Query: "What's the tech stack?"
 └─────────────────────┘
 ```
 
-### Why Quantum?
+### Why QAOA?
 
-Optimal subgraph selection is NP-hard. Given N candidate memories, finding the best K that maximize relevance, connectivity, AND coverage has exponential classical complexity. QAOA provides polynomial-time approximate solutions that beat greedy heuristics — this is the one problem where quantum computing has a genuine algorithmic advantage over classical approaches.
+Optimal subgraph selection is NP-hard. Given N candidate memories, finding the best K that maximize relevance and connectivity has exponential classical complexity. QAOA (Quantum Approximate Optimization Algorithm) is a well-studied approach for combinatorial problems like this. Our implementation runs a simulated QAOA circuit as a reranker over a classical candidate set (default 14 candidates). At this scale, it functions as a structured combinatorial search — the practical advantage comes from encoding relationship weights directly into the optimization objective rather than treating memories independently. For production use with larger candidate sets, real quantum hardware is available via the `[ibm]` extra.
 
 ## Architecture
 
@@ -128,10 +130,10 @@ Optimal subgraph selection is NP-hard. Given N candidate memories, finding the b
    - Temporal proximity (memories close in time)
    - Source proximity (same conversation/document)
 
-2. **Subgraph Optimizer** (`subgraph_optimizer.py`) — QAOA circuit that maximizes:
+2. **Subgraph Optimizer** (`subgraph_optimizer.py`) — QAOA-inspired circuit that maximizes:
    - α × relevance (individual memory scores)
    - β × connectivity (edge weights within selected subgraph)
-   - γ × coverage (topic diversity across selection)
+   - Classical post-filter for coverage/diversity
 
 3. **Pipeline** (`pipeline.py`) — Unified `store()` and `recall()` interface.
 

@@ -4,7 +4,7 @@ Knowledge Graph for Memory Relationships.
 Builds a graph where:
 - Nodes = individual memories
 - Edges = relationships (semantic similarity, temporal proximity,
-  entity co-occurrence, causal links)
+  entity co-occurrence, temporal proximity)
 - Edge weights = relationship strength
 
 This is what makes us different from every other memory system.
@@ -42,7 +42,7 @@ class Memory:
 
     @staticmethod
     def make_id(text: str) -> str:
-        return hashlib.md5(text[:200].encode()).hexdigest()[:12]
+        return hashlib.md5(text.encode()).hexdigest()[:16]
 
 
 class MemoryGraph:
@@ -54,7 +54,7 @@ class MemoryGraph:
       - semantic: embedding cosine similarity
       - temporal: time proximity (memories close in time are related)
       - entity: shared entities (people, places, projects)
-      - causal: A references or builds on B
+      - source: shared origin (same conversation/document)
     """
 
     # Supported models (user can pass any sentence-transformers model name)
