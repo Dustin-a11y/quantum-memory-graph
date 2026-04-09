@@ -13,9 +13,11 @@ from typing import Optional, List
 import uvicorn
 
 from .graph import MemoryGraph
-from .pipeline import store, store_batch, recall, get_graph, set_graph
+from .pipeline import store, store_batch, recall, get_graph, set_graph, get_stm
+from .recency import ShortTermMemory
 
 API_TOKEN = os.environ.get("QMG_API_TOKEN", "")
+QMG_MODEL = os.environ.get("QMG_MODEL", None)  # e.g. thenlper/gte-large
 
 
 async def verify_token(request: Request):
@@ -43,8 +45,12 @@ _graph = None
 async def startup():
     global _graph
     threshold = float(os.environ.get("QMG_SIMILARITY_THRESHOLD", "0.3"))
-    _graph = MemoryGraph(similarity_threshold=threshold)
+    _graph = MemoryGraph(similarity_threshold=threshold, model=QMG_MODEL)
     set_graph(_graph)
+    # Initialize short-term memory
+    stm = get_stm()
+    print(f"  Model: {_graph._model_name}")
+    print(f"  Short-term memory: enabled (recency + working memory + conversation)")
 
 
 @app.get("/")
@@ -118,7 +124,10 @@ async def api_recall(req: RecallRequest):
 @app.get("/stats")
 async def api_stats():
     g = get_graph()
-    return g.stats() if g else {"nodes": 0, "edges": 0}
+    stm = get_stm()
+    stats = g.stats() if g else {"nodes": 0, "edges": 0}
+    stats["short_term_memory"] = stm.stats()
+    return stats
 
 
 def main():
