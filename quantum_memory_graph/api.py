@@ -121,6 +121,38 @@ async def api_recall(req: RecallRequest):
     return result
 
 
+class QuantumRecallRequest(BaseModel):
+    query: str
+    user_id: str = "dustin"
+    k: int = 5
+    max_candidates: int = 14
+
+
+@app.post("/quantum-recall")
+async def api_quantum_recall(req: QuantumRecallRequest):
+    """Compatibility endpoint for mem0-bridge plugin."""
+    result = recall(
+        query=req.query,
+        K=req.k,
+        max_candidates=req.max_candidates,
+    )
+    # Transform to mem0-bridge expected format
+    memories = []
+    for m in result.get("memories", []):
+        memories.append({
+            "memory": m["text"],
+            "score": m.get("relevance", 0),
+            "entities": m.get("entities", []),
+            "connections": len(m.get("connections", [])),
+        })
+    return {
+        "ok": True,
+        "memories": memories,
+        "method": result.get("method", "qaoa"),
+        "graph_stats": result.get("graph_stats", {}),
+    }
+
+
 @app.get("/stats")
 async def api_stats():
     g = get_graph()
