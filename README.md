@@ -293,3 +293,10 @@ Built with [MemPalace](https://github.com/milla-jovovich/mempalace) by @bensig (
 - [quantum-agent-memory](https://github.com/Dustin-a11y/quantum-agent-memory) — The QAOA optimization engine
 - [MemPalace](https://github.com/milla-jovovich/mempalace) — Storage and retrieval backend
 - [MemCombine Benchmark](benchmarks/memcombine.py) — Test memory combination quality
+
+## Author
+
+Built by **Dustin Taylor** / Coinkong — Chef's Attraction AI Lab
+
+- 𝕏 [@Coinkong](https://x.com/Coinkong)
+- 📸 [@Dustin.c.Taylor](https://instagram.com/Dustin.c.Taylor)
