@@ -1,3 +1,29 @@
 [build-system]
 requires = ["setuptools>=68.0", "wheel"]
 build-backend = "setuptools.build_meta"
+
+[project]
+name = "quantum-memory-graph"
+version = "1.0.0"
+description = "Relationship-aware memory for AI agents — knowledge graph + QAOA subgraph optimization"
+readme = "README.md"
+license = {text = "MIT"}
+authors = [{name = "Coinkong", email = "dustin@chefsattraction.com"}]
+requires-python = ">=3.9"
+dependencies = [
+    "numpy",
+    "networkx",
+    "sentence-transformers",
+]
+
+[project.optional-dependencies]
+quantum = ["qiskit>=1.0", "qiskit-aer"]
+api = ["fastapi", "uvicorn"]
+full = ["qiskit>=1.0", "qiskit-aer", "fastapi", "uvicorn", "spacy", "requests"]
+dev = ["pytest"]
+
+[project.urls]
+Homepage = "https://github.com/Dustin-a11y/quantum-memory-graph"
+
+[project.scripts]
+qmg = "quantum_memory_graph.__main__:main"
