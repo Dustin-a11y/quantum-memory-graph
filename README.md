@@ -1,32 +1,53 @@
 # Quantum Memory Graph ⚛️🧠
 
-**Relationship-aware memory for AI agents. Knowledge graphs + QAOA-inspired combinatorial optimization.**
+**Full memory system for AI agents. Knowledge graphs + QAOA optimization + semantic tiers + deduplication + cross-agent sharing.**
 
-Every memory system treats memories as independent documents — search, rank, stuff into context. But memories aren't independent. They have *relationships*. "The team chose React" becomes 10x more useful paired with "because of ecosystem maturity" and "FastAPI handles the backend."
+v1.0.0 — the complete memory architecture for multi-agent systems.
 
-Quantum Memory Graph maps these relationships, then uses a QAOA-inspired optimizer to select the best *combination* of memories — not just the most relevant individuals, but the best connected subgraph that gives your agent maximum context.
+## What It Does
 
-> **Note:** The default optimizer runs a simulated QAOA circuit (via Qiskit Aer). For real quantum hardware, install the `[ibm]` extra. The core value is in the knowledge graph and relationship-aware retrieval — the quantum circuit acts as a combinatorial reranker over a small candidate set (default 14) selected by classical embedding search.
+Most memory systems treat memories as independent documents — search, rank, stuff into context. QMG maps **relationships** between memories, organizes them into **tiers** by recency, **deduplicates** similar memories, and enables **cross-agent knowledge sharing**. The QAOA optimizer selects the best *combination* of memories — not just the most relevant individuals, but the best connected subgraph.
+
+## Architecture
+
+```
+                    ┌─────────────────────────────┐
+                    │     Hot Tier (< 1 hour)      │  In-memory deque
+                    │  Zero latency, auto-demote   │  Survives compaction
+                    └──────────┬──────────────────┘
+                               │ demote
+                    ┌──────────▼──────────────────┐
+                    │    Warm Tier (1–24 hours)     │  SQLite-backed
+                    │  Keyword searchable, fast     │  Per-agent isolation
+                    └──────────┬──────────────────┘
+                               │ demote
+                    ┌──────────▼──────────────────┐
+                    │   Cold Tier (> 24 hours)      │  Full knowledge graph
+                    │  QAOA optimization, semantic   │  Embedding search
+                    └──────────┬──────────────────┘
+                               │
+          ┌────────────────────┼────────────────────┐
+          │                    │                    │
+  ┌───────▼───────┐  ┌────────▼────────┐  ┌───────▼───────┐
+  │ Dedup Engine   │  │ Shared Memory   │  │ Obsidian      │
+  │ Cosine ≥ 0.95  │  │ Cross-agent     │  │ Vault Export  │
+  │ Smart merge    │  │ Access control  │  │ Wikilinks     │
+  └───────────────┘  └─────────────────┘  └───────────────┘
+```
 
 ## Benchmarks
 
 ### LongMemEval (ICLR 2025) — Industry Standard
 
-500 questions across 53 conversation sessions. The gold standard for AI memory retrieval.
-
 | System | R@5 | R@10 | NDCG@10 |
 |--------|-----|------|---------|
 | **Quantum Memory Graph (gte-large)** | **96.6%** | **98.7%** | **94.3%** |
 | MemPalace raw | 96.6% | 98.2% | 88.9% |
-| Quantum Memory Graph (e5-large) | 96.0% | 98.1% | 94.6% |
-| Quantum Memory Graph (bge-large) | 95.9% | 98.2% | 94.0% |
 | OMEGA | 95.4% | — | — |
 | Mastra OM | 94.9% | — | — |
 | Quantum Memory Graph (MiniLM, default) | 93.4% | 97.4% | 90.8% |
 
-**#1 to our knowledge. Tied on R@5, best R@10 and NDCG@10 among published results.** Free. Open source.
-
-Use `model="thenlper/gte-large"` for #1 accuracy, or `model="intfloat/e5-large-v2"` for best NDCG ranking.
+**#1 to our knowledge.** Tied on R@5, best R@10 and NDCG@10 among published results.
 
 ### MemCombine — Combination Recall (250 Scenarios)
 
@@ -35,33 +56,20 @@ Use `model="thenlper/gte-large"` for #1 accuracy, or `model="intfloat/e5-large-v
 | Embedding Top-K | 92.3% | 93.9% | 91.3% | 181/250 |
 | **Graph + QAOA** | **96.2%** | **97.7%** | **95.1%** | **212/250** |
 
-Graph-aware quantum selection beats pure similarity by +3.8% on combination tasks.
-
-## Choosing a Model
-
-| Model | Size | GPU? | R@5 | Best For |
-|-------|------|------|-----|----------|
-| `all-MiniLM-L6-v2` (default) | 90MB | No | 93.4% | Laptops, CI/CD, quick prototyping |
-| `BAAI/bge-large-en-v1.5` | 1.3GB | Recommended | 95.9% | Production servers with GPU |
-| `intfloat/e5-large-v2` | 1.3GB | Recommended | 96.0% | Best ranking quality (NDCG) |
-| `thenlper/gte-large` | 1.3GB | Recommended | 96.6% | Maximum retrieval accuracy |
-
-```python
-from quantum_memory_graph import MemoryGraph
-
-# Default — works everywhere, no GPU needed
-mg = MemoryGraph()
-
-# High accuracy — needs ~2GB RAM, GPU speeds it up 60x
-mg = MemoryGraph(model="thenlper/gte-large")
-```
-
-The default model runs on any machine. Larger models need more RAM and benefit from a GPU but aren't required — they'll just be slower on CPU.
-
 ## Install
 
 ```bash
+# Core (no quantum deps, uses greedy fallback)
 pip install quantum-memory-graph
+
+# With QAOA quantum optimization
+pip install quantum-memory-graph[quantum]
+
+# Full install (API server + quantum + NLP)
+pip install quantum-memory-graph[full]
+
+# Development
+pip install quantum-memory-graph[dev]
 ```
 
 ## Quick Start
@@ -69,208 +77,189 @@ pip install quantum-memory-graph
 ```python
 from quantum_memory_graph import store, recall
 
-# Store memories — automatically builds knowledge graph
-store("Project Alpha uses React frontend with TypeScript.")
+# Store memories — builds knowledge graph automatically
+store("Project Alpha uses React with TypeScript.")
 store("Project Alpha backend is FastAPI with PostgreSQL.")
 store("FastAPI connects to PostgreSQL via SQLAlchemy ORM.")
-store("React components use Material UI for styling.")
-store("Team had pizza for lunch. Pepperoni was great.")
 
 # Recall — graph traversal + QAOA finds the optimal combination
-result = recall("What is Project Alpha's full tech stack?", K=4)
-
+result = recall("What is Project Alpha's tech stack?", K=4)
 for memory in result["memories"]:
     print(f"  {memory['text']}")
-    print(f"    Connected to {len(memory['connections'])} other selected memories")
 ```
 
-Output: Returns React, FastAPI, PostgreSQL, and SQLAlchemy memories — connected, complete, no noise. The pizza memory is excluded because it has no graph connections to the tech stack cluster.
+## Features
 
-## How It Works
+### 1. Semantic Memory Tiers
 
-```
-Query: "What's the tech stack?"
-        │
-        ▼
-┌─────────────────────┐
-│  1. Graph Search     │  Embedding similarity + multi-hop traversal
-│     Find neighbors   │  Discovers memories connected to relevant ones
-└────────┬────────────┘
-         │ 14 candidates
-         ▼
-┌─────────────────────┐
-│  2. Subgraph Data    │  Extract adjacency matrix + relevance scores
-│     Build problem    │  Encode relationships as optimization weights
-└────────┬────────────┘
-         │ NP-hard selection
-         ▼
-┌─────────────────────┐
-│  3. QAOA Optimize    │  Quantum approximate optimization
-│     Find best K      │  Maximizes: relevance + connectivity + coverage
-└────────┬────────────┘
-         │ K memories
-         ▼
-┌─────────────────────┐
-│  4. Return with      │  Each memory includes its connections
-│     relationships    │  to other selected memories
-└─────────────────────┘
-```
-
-### Why QAOA?
-
-Optimal subgraph selection is NP-hard. Given N candidate memories, finding the best K that maximize relevance and connectivity has exponential classical complexity. QAOA (Quantum Approximate Optimization Algorithm) is a well-studied approach for combinatorial problems like this. Our implementation runs a simulated QAOA circuit as a reranker over a classical candidate set (default 14 candidates). At this scale, it functions as a structured combinatorial search — the practical advantage comes from encoding relationship weights directly into the optimization objective rather than treating memories independently. For production use with larger candidate sets, real quantum hardware is available via the `[ibm]` extra.
-
-## Architecture
-
-### Three Layers
-
-1. **Knowledge Graph** (`graph.py`) — Memories are nodes. Relationships are weighted edges based on:
-   - Semantic similarity (embedding cosine distance)
-   - Entity co-occurrence (shared people, projects, concepts)
-   - Temporal proximity (memories close in time)
-   - Source proximity (same conversation/document)
-
-2. **Subgraph Optimizer** (`subgraph_optimizer.py`) — QAOA-inspired circuit that maximizes:
-   - α × relevance (individual memory scores)
-   - β × connectivity (edge weights within selected subgraph)
-   - Classical post-filter for coverage/diversity
-
-3. **Pipeline** (`pipeline.py`) — Unified `store()` and `recall()` interface.
-
-### Optional: MemPalace Integration
-
-Use [MemPalace](https://github.com/milla-jovovich/mempalace) (MIT, by @bensig) as the storage/retrieval backend for 96.6% base retrieval quality:
+Three-tier system for optimal latency at every time scale:
 
 ```python
-from quantum_memory_graph.mempalace_bridge import store_memory, recall_memories
+from quantum_memory_graph.tiers import MemoryTierManager
 
-# MemPalace stores verbatim → ChromaDB retrieves candidates → QAOA selects optimal subgraph
-result = recall_memories("What happened in the meeting?", K=5, use_qaoa=True)
+tiers = MemoryTierManager(agent_id="daisy", warm_db_path="~/.qmg/warm.db")
+
+# Store — goes to hot tier automatically
+tiers.store("User wants the dashboard updated", agent_id="daisy")
+
+# Recall — searches all tiers, hot first
+results = tiers.recall("dashboard", agent_id="daisy", limit=5)
+
+# Maintenance — demotes hot → warm → cold
+stats = tiers.tick()
+print(stats)  # {"hot": 5, "warm": 23, "cold": 412, "demoted": 3}
+```
+
+- **Hot** (< 1 hour): In-memory deque. Zero latency. Survives context compaction.
+- **Warm** (1–24 hours): SQLite-backed. Keyword searchable. Per-agent isolation.
+- **Cold** (> 24 hours): Full knowledge graph + QAOA optimization.
+
+### 2. Memory Deduplication
+
+Keeps your memory clean — merges near-duplicates automatically:
+
+```python
+from quantum_memory_graph.dedup import MemoryDeduplicator
+
+dedup = MemoryDeduplicator(threshold=0.95)
+
+# Dry run first
+stats = dedup.merge_duplicates(graph, dry_run=True)
+print(f"Would remove {stats['duplicates_removed']} duplicates")
+
+# Real merge — keeps the richest version of each memory
+stats = dedup.merge_duplicates(graph)
+print(f"Removed {stats['duplicates_removed']}, merged {stats['entities_merged']} entities")
+```
+
+Smart canonical selection: keeps the memory with the most entities, most recent timestamp, and longest text.
+
+### 3. Cross-Agent Memory Sharing
+
+Shared knowledge pool with access control:
+
+```python
+from quantum_memory_graph.sharing import SharedMemoryPool
+
+pool = SharedMemoryPool(db_path="~/.qmg/shared_pool.db")
+
+# Store shared knowledge — visible to specific agents or all
+pool.store(
+    text="Chef's Attraction runs on CookUnity",
+    author_agent="daisy",
+    category="business",
+    access="public"  # or ["daisy", "luigi", "bowser"]
+)
+
+# Any authorized agent can recall
+results = pool.recall("CookUnity", requesting_agent="mario", limit=5)
+```
+
+Categories: `business`, `technical`, `rules`, `people`, `general`
+
+### 4. Obsidian Vault Export
+
+Visualize your agent's knowledge graph in Obsidian:
+
+```python
+from quantum_memory_graph.obsidian import export_vault, export_from_mem0
+
+# Export from a running QMG graph
+export_vault(graph, "/path/to/vault", agent_memories={"daisy": [...], "dk": [...]})
+
+# Or pull directly from a Mem0 API
+export_from_mem0(
+    mem0_url="http://localhost:8500",
+    vault_path="/path/to/vault",
+    agents=["daisy", "luigi", "bowser"]
+)
+```
+
+Each memory becomes a markdown note with YAML frontmatter, `[[wikilinks]]` for connections, and `#tags` for entities. Open in Obsidian → Graph View to see your agent's knowledge mapped visually.
+
+### 5. QAOA Subgraph Optimization
+
+The core quantum advantage — optimal memory combination selection:
+
+```python
+result = recall(
+    "query",
+    K=5,
+    alpha=0.4,        # Relevance weight
+    beta_conn=0.35,    # Connectivity weight
+    gamma_cov=0.25,    # Coverage/diversity weight
+    hops=3,            # Graph traversal depth
+    top_seeds=7,       # Initial seed nodes
+    max_candidates=14, # Max candidates for QAOA
+)
+```
+
+Falls back to greedy selection when Qiskit is not installed — still beats pure similarity search.
+
+### 6. Short-Term Memory
+
+Session-aware memory with recency boosting:
+
+```python
+from quantum_memory_graph.recency import ShortTermMemory
+
+stm = ShortTermMemory()
+stm.start_session("conv_123")
+stm.add_turn("conv_123", "What's our deadline?", "March 15th")
+
+# Recent conversations get boosted in recall
+boosted = stm.boost_results(results, session_id="conv_123")
 ```
 
 ## API Server
 
 ```bash
 pip install quantum-memory-graph[api]
-python -m quantum_memory_graph.api
-```
-
-Endpoints:
-- `POST /store` — Store a memory
-- `POST /recall` — Graph + QAOA recall
-- `POST /store-batch` — Batch store
-- `GET /stats` — Graph statistics
-- `GET /` — Health check
-
-## Advanced Usage
-
-### Custom Graph
-
-```python
-from quantum_memory_graph import MemoryGraph, recall
-from quantum_memory_graph.pipeline import set_graph
-
-# Tune similarity threshold for edge creation
-graph = MemoryGraph(similarity_threshold=0.25)
-set_graph(graph)
-
-# Store and recall as normal
-```
-
-### Tune QAOA Parameters
-
-```python
-result = recall(
-    "query",
-    K=5,
-    alpha=0.4,       # Relevance weight
-    beta_conn=0.35,   # Connectivity weight  
-    gamma_cov=0.25,   # Coverage/diversity weight
-    hops=3,           # Graph traversal depth
-    top_seeds=7,      # Initial seed nodes
-    max_candidates=14, # Max qubits for QAOA
-)
-```
-
-### Run MemCombine Benchmark
-
-```python
-from benchmarks.memcombine import run_benchmark
-
-def my_recall(memories, query, K):
-    # Your recall implementation
-    return selected_indices  # List[int]
-
-results = run_benchmark(my_recall, K=5)
-print(f"Coverage: {results['avg_coverage']*100:.1f}%")
-```
-
-## Deploying for AI Agents
-
-### Replace Your Current Memory System
-
-QMG is a drop-in upgrade for existing memory systems (Mem0, LangChain memory, custom RAG):
-
-```python
-# Before (typical flat similarity search)
-results = memory.search("What's the tech stack?", k=5)
-
-# After (graph-aware combination retrieval)
-from quantum_memory_graph import store, recall
-
-result = recall("What's the tech stack?", K=5)
-# Returns connected memory clusters, not just individual matches
-```
-
-### Run as a Microservice
-
-Deploy the API server for multiple agents to share:
-
-```bash
-pip install quantum-memory-graph[api]
-
-# Default model (lightweight, no GPU)
 python -m quantum_memory_graph.api --port 8502
-
-# High accuracy (needs GPU for best speed)
-QMG_MODEL=thenlper/gte-large python -m quantum_memory_graph.api --port 8502
 ```
 
-Then from any agent:
+### Endpoints
+
+| Method | Path | Description |
+|--------|------|-------------|
+| `POST` | `/store` | Store a memory |
+| `POST` | `/store-batch` | Batch store (max 500) |
+| `POST` | `/recall` | Graph + QAOA recall |
+| `POST` | `/dedup` | Run deduplication |
+| `POST` | `/tiers/store` | Store to tier system |
+| `POST` | `/tiers/recall` | Recall from all tiers |
+| `POST` | `/tiers/tick` | Run tier maintenance |
+| `POST` | `/shared/store` | Store shared memory |
+| `POST` | `/shared/recall` | Recall shared memories |
+| `GET` | `/shared/stats` | Shared pool statistics |
+| `POST` | `/obsidian/export` | Export to Obsidian vault |
+| `GET` | `/stats` | Graph statistics |
+| `GET` | `/` | Health check |
+
+All endpoints require `Authorization: Bearer <token>` when `QMG_API_TOKEN` is set.
+
+## Choosing a Model
+
+| Model | Size | GPU? | R@5 | Best For |
+|-------|------|------|-----|----------|
+| `all-MiniLM-L6-v2` (default) | 90MB | No | 93.4% | Laptops, CI/CD |
+| `BAAI/bge-large-en-v1.5` | 1.3GB | Recommended | 95.9% | Production with GPU |
+| `intfloat/e5-large-v2` | 1.3GB | Recommended | 96.0% | Best ranking (NDCG) |
+| `thenlper/gte-large` | 1.3GB | Recommended | 96.6% | Maximum accuracy |
+
 ```python
-import requests
+from quantum_memory_graph import MemoryGraph
 
-# Store a memory
-requests.post("http://localhost:8502/store", json={"text": "User prefers dark mode"})
-
-# Recall with graph + QAOA
-result = requests.post("http://localhost:8502/recall", json={"query": "What are the user's preferences?", "K": 5})
+mg = MemoryGraph()                              # Default — works everywhere
+mg = MemoryGraph(model="thenlper/gte-large")    # Best accuracy
 ```
-
-### Migrate from Mem0 / LangChain
-
-```python
-from quantum_memory_graph import store
-
-# Export your existing memories and bulk import
-for memory in existing_memories:
-    store(memory["text"], metadata=memory.get("metadata"))
-# Graph connections are built automatically during import
-```
-
-### Production Tips
-
-- **Shared API server**: Run one instance, point all agents at it. The knowledge graph is shared — Agent A's memories help Agent B's recall.
-- **Model choice**: Use `gte-large` on GPU servers (96.6% accuracy). Use default `MiniLM` on laptops or CI (93.4%, no GPU needed).
-- **Batch import**: Use `/store-batch` endpoint for bulk migration — 10x faster than individual stores.
-- **Persistence**: Graph state saves to disk automatically. Restart the server without losing memories.
 
 ## IBM Quantum Hardware
 
-For production workloads, run QAOA on real quantum hardware:
+For production QAOA on real quantum hardware:
 
 ```bash
-pip install quantum-memory-graph[ibm]
+pip install quantum-memory-graph[quantum]
 export IBM_QUANTUM_TOKEN=your_token
 ```
 
@@ -279,22 +268,18 @@ Validated on `ibm_fez` and `ibm_kingston` backends.
 ## Requirements
 
 - Python ≥ 3.9
-- sentence-transformers
-- networkx
-- qiskit + qiskit-aer
-- numpy
+- sentence-transformers, networkx, numpy
+- Optional: qiskit + qiskit-aer (quantum), fastapi + uvicorn (API), spacy (NLP)
 
 ## License
 
 MIT License — Copyright 2026 Coinkong (Chef's Attraction)
 
-Built with [MemPalace](https://github.com/milla-jovovich/mempalace) by @bensig (MIT License). See [THIRD-PARTY-LICENSES](THIRD-PARTY-LICENSES).
-
 ## Links
 
-- [quantum-agent-memory](https://github.com/Dustin-a11y/quantum-agent-memory) — The QAOA optimization engine
-- [MemPalace](https://github.com/milla-jovovich/mempalace) — Storage and retrieval backend
-- [MemCombine Benchmark](benchmarks/memcombine.py) — Test memory combination quality
+- [GitHub](https://github.com/Dustin-a11y/quantum-memory-graph)
+- [PyPI](https://pypi.org/project/quantum-memory-graph/)
+- [Changelog](CHANGELOG.md)
 
 ## Author
 

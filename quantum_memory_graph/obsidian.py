@@ -246,7 +246,7 @@ def export_from_mem0(mem0_url: str, vault_path: str,
     
     Usage:
         export_from_mem0(
-            "http://100.124.61.124:8500",
+            "http://localhost:8500",
             "/path/to/vault",
             agents=["donkeykong", "daisy", "luigi"]
         )
@@ -256,7 +256,11 @@ def export_from_mem0(mem0_url: str, vault_path: str,
     
     # SSRF protection — only allow internal/known hosts
     parsed = urlparse(mem0_url)
-    allowed_hosts = ['localhost', '127.0.0.1', '100.124.61.124', '100.113.116.15']
+    allowed_hosts = ['localhost', '127.0.0.1']
+    # Add custom hosts via QMG_ALLOWED_HOSTS env var (comma-separated)
+    extra = os.environ.get('QMG_ALLOWED_HOSTS', '')
+    if extra:
+        allowed_hosts.extend(h.strip() for h in extra.split(',') if h.strip())
     if parsed.hostname not in allowed_hosts and not parsed.hostname.endswith('.ts.net'):
         return {"ok": False, "error": f"mem0_url host not in allowlist: {parsed.hostname}"}
     
