@@ -124,9 +124,12 @@ class SharedMemoryPool:
             conditions = []
             params = []
             
-            # Text search
-            text_conds = ["LOWER(text) LIKE ?"] * min(len(terms), 5)
-            text_params = [f"%{t}%" for t in terms[:5]]
+            # Text search (escape SQL wildcards)
+            def _escape_like(s):
+                return s.replace('%', '\\%').replace('_', '\\_')
+            
+            text_conds = ["LOWER(text) LIKE ? ESCAPE '\\'"] * min(len(terms), 5)
+            text_params = [f"%{_escape_like(t)}%" for t in terms[:5]]
             conditions.append(f"({' OR '.join(text_conds)})")
             params.extend(text_params)
             

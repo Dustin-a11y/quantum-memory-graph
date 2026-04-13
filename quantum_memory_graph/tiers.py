@@ -161,13 +161,16 @@ class WarmTier:
             conn.execute("DELETE FROM warm_memories WHERE timestamp < ?", (cutoff,))
             conn.commit()
             
-            # Search with LIKE for key terms
+            # Search with LIKE for key terms (escape SQL wildcards)
             terms = [t.strip() for t in query.lower().split() if len(t.strip()) > 2]
             if not terms:
                 return []
             
-            conditions = ["LOWER(text) LIKE ?"] * len(terms)
-            params = [f"%{t}%" for t in terms[:5]]  # Cap at 5 terms
+            def _escape_like(s):
+                return s.replace('%', '\\%').replace('_', '\\_')
+            
+            conditions = ["LOWER(text) LIKE ? ESCAPE '\\'"] * len(terms)
+            params = [f"%{_escape_like(t)}%" for t in terms[:5]]  # Cap at 5 terms
             
             where = " OR ".join(conditions)
             if agent_id:

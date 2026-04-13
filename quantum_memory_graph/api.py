@@ -12,8 +12,10 @@ Copyright 2026 Coinkong (Chef's Attraction). MIT License.
 """
 
 import os
+import hmac
+import time as _time
 from fastapi import FastAPI, Request, HTTPException, Depends
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from typing import Optional, List
 import uvicorn
 
@@ -39,7 +41,7 @@ async def verify_token(request: Request):
     if not API_TOKEN:
         return
     auth = request.headers.get("Authorization", "")
-    if not auth.startswith("Bearer ") or auth[7:] != API_TOKEN:
+    if not auth.startswith("Bearer ") or not hmac.compare_digest(auth[7:], API_TOKEN):
         raise HTTPException(status_code=401, detail="Unauthorized")
 
 
@@ -108,7 +110,7 @@ async def api_store(req: StoreRequest):
 
 
 class StoreBatchRequest(BaseModel):
-    texts: List[str]
+    texts: List[str] = Field(..., max_length=500)  # Cap batch size
     sources: Optional[List[str]] = None
 
 
@@ -145,7 +147,7 @@ async def api_recall(req: RecallRequest):
         if warm:
             result["warm_memories"] = [
                 {"text": m.text, "tier": "warm", "age_seconds": int(
-                    __import__('time').time() - m.timestamp
+                    _time.time() - m.timestamp
                 )} for m in warm
             ]
     return result
@@ -283,10 +285,10 @@ async def api_shared_stats():
 # ─── Obsidian Export ───
 
 class ObsidianExportRequest(BaseModel):
-    vault_path: str
-    mem0_url: Optional[str] = None
-    mem0_token: Optional[str] = None
-    agents: Optional[List[str]] = None
+    vault_path: str = Field(..., max_length=500)
+    mem0_url: Optional[str] = Field(None, max_length=200)
+    mem0_token: Optional[str] = Field(None, max_length=200)
+    agents: Optional[List[str]] = Field(None, max_length=20)
 
 
 @app.post("/obsidian/export")

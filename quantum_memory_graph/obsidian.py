@@ -103,7 +103,12 @@ def export_vault(graph: MemoryGraph, vault_path: str,
         │   └── memory2.md
         └── shared/            (if shared pool exists)
     """
-    vault = Path(vault_path)
+    vault = Path(vault_path).resolve()
+    # Prevent path traversal — vault must be under user home or /tmp
+    vault_str = str(vault)
+    allowed_prefixes = [str(Path.home()), '/tmp', '/opt']
+    if not any(vault_str.startswith(p) for p in allowed_prefixes):
+        return {"ok": False, "error": f"Vault path must be under home, /tmp, or /opt"}
     vault.mkdir(parents=True, exist_ok=True)
     
     # Create minimal .obsidian config
@@ -247,6 +252,13 @@ def export_from_mem0(mem0_url: str, vault_path: str,
         )
     """
     import requests
+    from urllib.parse import urlparse
+    
+    # SSRF protection — only allow internal/known hosts
+    parsed = urlparse(mem0_url)
+    allowed_hosts = ['localhost', '127.0.0.1', '100.124.61.124', '100.113.116.15']
+    if parsed.hostname not in allowed_hosts and not parsed.hostname.endswith('.ts.net'):
+        return {"ok": False, "error": f"mem0_url host not in allowlist: {parsed.hostname}"}
     
     all_agents = agents or [
         'bowser', 'mario', 'luigi', 'toadstool', 'yoshi', 'peach',
