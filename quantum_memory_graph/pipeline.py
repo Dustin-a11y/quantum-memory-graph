@@ -22,7 +22,7 @@ _default_graph: Optional[MemoryGraph] = None
 _default_stm: Optional[ShortTermMemory] = None
 
 
-def get_graph(similarity_threshold: float = 0.3) -> MemoryGraph:
+def get_graph(similarity_threshold: float = 0.25) -> MemoryGraph:
     """Get or create the default memory graph."""
     global _default_graph
     if _default_graph is None:
@@ -132,9 +132,9 @@ def recall(
     K: int = 5,
     hops: int = 2,
     top_seeds: int = 5,
-    alpha: float = 0.4,
-    beta_conn: float = 0.35,
-    gamma_cov: float = 0.25,
+    alpha: float = 0.3,
+    beta_conn: float = 0.15,
+    gamma_cov: float = 0.35,
     graph: MemoryGraph = None,
     max_candidates: int = 14,
     use_recency: bool = True,
