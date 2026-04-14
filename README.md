@@ -54,7 +54,12 @@ Most memory systems treat memories as independent documents — search, rank, st
 | Method | Coverage | Evidence Recall | F1 | Perfect |
 |--------|----------|----------------|----|---------|
 | Embedding Top-K | 92.3% | 93.9% | 91.3% | 181/250 |
-| **Graph + QAOA** | **96.2%** | **97.7%** | **95.1%** | **212/250** |
+| Graph + QAOA (default) | 94.6% | 95.9% | 93.5% | 210/250 |
+| **Graph + QAOA (tuned)** | **97.0%** | **98.6%** | **96.0%** | **215/250** |
+
+Optimal weights (grid search, 320 combos): `α=0.3, β=0.15, γ=0.35, threshold=0.25`
+
+**+4.7% over Top-K baseline. +2.5% over default weights.**
 
 ## Install
 
