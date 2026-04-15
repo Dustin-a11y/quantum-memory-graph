@@ -33,7 +33,7 @@ def test_graph_construction():
         "Chef decided to open source the quantum memory project under MIT license.",
         "Copyright was updated to Coinkong Chef's Attraction for all quantum files.",
         "Team had pizza for lunch. The pepperoni was excellent.",
-        "MemPalace achieves 96.6% recall on LongMemEval benchmark.",
+        "Previous SOTA achieves 96.6% recall on LongMemEval benchmark.",
         "QAOA provides 99.7% optimality on memory selection problems.",
         "The DGX Spark has 128GB RAM and an NVIDIA GB10 GPU.",
         "PostgreSQL with pgvector runs on the Spark for embedding storage.",

@@ -42,7 +42,6 @@ Most memory systems treat memories as independent documents — search, rank, st
 | System | R@5 | R@10 | NDCG@10 |
 |--------|-----|------|---------|
 | **Quantum Memory Graph (gte-large)** | **96.6%** | **98.7%** | **94.3%** |
-| MemPalace raw | 96.6% | 98.2% | 88.9% |
 | OMEGA | 95.4% | — | — |
 | Mastra OM | 94.9% | — | — |
 | Quantum Memory Graph (MiniLM, default) | 93.4% | 97.4% | 90.8% |

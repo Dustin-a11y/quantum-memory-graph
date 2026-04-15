@@ -217,7 +217,7 @@ def main():
 
     # Final comparison table
     print(f"\n{'='*60}", flush=True)
-    print(f"MemPalace raw:  R@5=0.966  R@10=0.982  NDCG=0.889", flush=True)
+    print(f"Previous SOTA:  R@5=0.966  R@10=0.982  NDCG=0.889", flush=True)
     print(f"Previous best (v4 char):  R@5=0.934  R@10=0.974  NDCG=0.908", flush=True)
     print(f"{'='*60}", flush=True)
 

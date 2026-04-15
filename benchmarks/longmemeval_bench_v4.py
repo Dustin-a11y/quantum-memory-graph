@@ -308,9 +308,9 @@ def main():
     print(f"  {'Top-K Chunked':<35} {t['recall_at_5']:>7.3f} {t['recall_at_10']:>7.3f} {t['ndcg_at_10']:>7.3f}", flush=True)
     h = results["hybrid"]
     print(f"  {'Hybrid (Top-K → QAOA re-rank)':<35} {h['recall_at_5']:>7.3f} {h['recall_at_10']:>7.3f} {h['ndcg_at_10']:>7.3f}", flush=True)
-    print(f"  {'MemPalace raw':<35} {'0.966':>8} {'0.982':>8} {'0.889':>8}", flush=True)
+    print(f"  {'Previous SOTA':<35} {'0.966':>8} {'0.982':>8} {'0.889':>8}", flush=True)
     print(f"\n  Hybrid vs Top-K: {(h['recall_at_5']-t['recall_at_5'])*100:+.1f}% R@5", flush=True)
-    print(f"  Hybrid vs MemPalace: {(h['recall_at_5']-0.966)*100:+.1f}% R@5", flush=True)
+    print(f"  Hybrid vs Previous SOTA: {(h['recall_at_5']-0.966)*100:+.1f}% R@5", flush=True)
 
     outpath = os.path.join(os.path.dirname(os.path.abspath(__file__)), "results_longmemeval_v4.json")
     with open(outpath, "w") as f:

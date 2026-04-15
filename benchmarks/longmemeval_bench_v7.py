@@ -1,5 +1,5 @@
 """
-LongMemEval v7 — Test more embedding models to beat MemPalace 96.6%.
+LongMemEval v7 — Test more embedding models to beat previous SOTA 96.6%.
 Models: gte-large-en-v1.5, jina-embeddings-v3 (if available)
 
 DK 🦍
@@ -182,7 +182,7 @@ def main():
     for r in results:
         name = r['model'].split('/')[-1]
         print(f"  {name:<45} {r['dim']:>5} {r['recall_at_5']:>7.3f} {r['recall_at_10']:>7.3f} {r['ndcg_at_10']:>7.3f}", flush=True)
-    print(f"  {'MemPalace raw':<45} {'N/A':>5} {'0.966':>8} {'0.982':>8} {'0.889':>8}", flush=True)
+    print(f"  {'Previous SOTA':<45} {'N/A':>5} {'0.966':>8} {'0.982':>8} {'0.889':>8}", flush=True)
 
     outpath = os.path.join(os.path.dirname(os.path.abspath(__file__)), "results_longmemeval_v7.json")
     with open(outpath, "w") as f:

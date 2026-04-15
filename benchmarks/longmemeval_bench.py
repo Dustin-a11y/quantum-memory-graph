@@ -1,6 +1,6 @@
 """
 LongMemEval Benchmark for quantum-memory-graph.
-Runs the same 500-question benchmark MemPalace uses.
+Runs the same 500-question benchmark the community uses.
 
 Each question has ~53 conversation sessions as haystack.
 Task: retrieve the correct session(s) in top-K results.
@@ -198,7 +198,7 @@ def main():
         diff10 = results["graph"]["recall_at_10"] - results["topk"]["recall_at_10"]
         print(f"  R@5  improvement: {diff5:+.3f} ({diff5*100:+.1f}%)", flush=True)
         print(f"  R@10 improvement: {diff10:+.3f} ({diff10*100:+.1f}%)", flush=True)
-        print(f"\n  MemPalace raw mode: 0.966 R@5", flush=True)
+        print(f"\n  Previous SOTA: 0.966 R@5", flush=True)
         print(f"  Our Graph+QAOA:     {results['graph']['recall_at_5']:.3f} R@5", flush=True)
     
     outpath = os.path.join(os.path.dirname(os.path.abspath(__file__)), "results_longmemeval.json")

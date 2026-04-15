@@ -1,14 +1,6 @@
 Third-Party Licenses
 ====================
 
-MemPalace
----------
-Copyright (c) 2025 Ben Sigman (@bensig)
-License: MIT
-Repository: https://github.com/milla-jovovich/mempalace
-Description: Memory palace storage and retrieval system for AI agents.
-Used as: pip dependency for verbatim memory storage and ChromaDB retrieval.
-
 Qiskit
 ------
 Copyright (c) IBM Corporation and contributors

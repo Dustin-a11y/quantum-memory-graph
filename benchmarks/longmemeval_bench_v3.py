@@ -245,7 +245,7 @@ def main():
         r = results["graph"]
         print(f"  {'v3 Graph+QAOA (chunked)':<30} {r['recall_at_5']:>7.3f} {r['recall_at_10']:>7.3f} {r['ndcg_at_10']:>7.3f}", flush=True)
     
-    print(f"  {'MemPalace raw':<30} {'0.966':>8} {'0.982':>8} {'0.889':>8}", flush=True)
+    print(f"  {'Previous SOTA':<30} {'0.966':>8} {'0.982':>8} {'0.889':>8}", flush=True)
     
     outpath = os.path.join(os.path.dirname(os.path.abspath(__file__)), "results_longmemeval_v3.json")
     with open(outpath, "w") as f:

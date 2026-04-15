@@ -63,7 +63,7 @@ All notable changes to Quantum Memory Graph.
 ### 🏆 #1 on LongMemEval
 
 - **gte-large model: 96.6% R@5** — tied #1 worldwide on LongMemEval
-- **98.7% R@10** — best in the world (MemPalace: 98.2%)
+- **98.7% R@10** — best published R@10 on LongMemEval
 - **94.3% NDCG@10** — best ranking quality by 5.4 points
 - Tested 5 embedding models in one day: MiniLM, BGE-large, e5-large, gte-large, nomic-embed
 - Added `model=` parameter to `MemoryGraph()` for swappable embeddings
@@ -74,7 +74,6 @@ All notable changes to Quantum Memory Graph.
 | System | R@5 | R@10 | NDCG@10 |
 |--------|-----|------|---------|
 | **Quantum Memory Graph (gte-large)** | **96.6%** | **98.7%** | **94.3%** |
-| MemPalace | 96.6% | 98.2% | 88.9% |
 | OMEGA | 95.4% | — | — |
 | Mastra OM | 94.9% | — | — |
 
@@ -95,7 +94,7 @@ All notable changes to Quantum Memory Graph.
 - LongMemEval baseline: 93.4% R@5 with chunked retrieval
 - FastAPI server for production deployment
 - IBM Quantum hardware support via qiskit-ibm-runtime
-- Built on MemPalace by @bensig (MIT)
+- Knowledge graph + QAOA subgraph optimization — original implementation
 
 ---
 

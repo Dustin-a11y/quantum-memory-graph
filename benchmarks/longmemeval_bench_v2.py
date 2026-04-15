@@ -210,7 +210,7 @@ def main():
         print(f"  Top-K Chunked:    R@5={t['recall_at_5']:.3f}  R@10={t['recall_at_10']:.3f}", flush=True)
         print(f"  Graph+QAOA:       R@5={g['recall_at_5']:.3f}  R@10={g['recall_at_10']:.3f}", flush=True)
         print(f"  R@5 diff:         {(g['recall_at_5']-t['recall_at_5'])*100:+.1f}%", flush=True)
-        print(f"  MemPalace:        R@5=0.966", flush=True)
+        print(f"  Previous SOTA:    R@5=0.966", flush=True)
         print(f"  Our best:         R@5={max(t['recall_at_5'],g['recall_at_5']):.3f}", flush=True)
 
     # Also include v1 results for full picture

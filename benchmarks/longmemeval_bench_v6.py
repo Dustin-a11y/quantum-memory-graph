@@ -170,12 +170,12 @@ def main():
     for r in results:
         name = r['model'].split('/')[-1]
         print(f"  {name:<45} {r['dim']:>5} {r['recall_at_5']:>7.3f} {r['recall_at_10']:>7.3f} {r['ndcg_at_10']:>7.3f}", flush=True)
-    print(f"  {'MemPalace raw':<45} {'N/A':>5} {'0.966':>8} {'0.982':>8} {'0.889':>8}", flush=True)
+    print(f"  {'Previous SOTA':<45} {'N/A':>5} {'0.966':>8} {'0.982':>8} {'0.889':>8}", flush=True)
 
     if len(results) >= 2:
         diff = results[1]['recall_at_5'] - results[0]['recall_at_5']
         print(f"\n  bge-large vs MiniLM: {diff*100:+.1f}% R@5", flush=True)
-        print(f"  bge-large vs MemPalace: {(results[1]['recall_at_5']-0.966)*100:+.1f}% R@5", flush=True)
+        print(f"  bge-large vs Previous SOTA: {(results[1]['recall_at_5']-0.966)*100:+.1f}% R@5", flush=True)
 
     outpath = os.path.join(os.path.dirname(os.path.abspath(__file__)), "results_longmemeval_v6.json")
     with open(outpath, "w") as f:
