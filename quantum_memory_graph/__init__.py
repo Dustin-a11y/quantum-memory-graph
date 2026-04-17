@@ -4,7 +4,7 @@ Quantum Memory Graph — Relationship-aware memory for AI agents.
 Uses knowledge graphs to map relationships between memories,
 then QAOA to find the optimal subgraph for any query.
 
-v1.0.0 — Full system:
+v1.1.0 — Full system:
   - Knowledge graph with multi-hop traversal
   - QAOA subgraph optimization  
   - Short-term memory (recency, working memory, conversation context)
@@ -16,7 +16,7 @@ v1.0.0 — Full system:
 Copyright 2026 Coinkong (Chef's Attraction). MIT License.
 """
 
-__version__ = "1.0.0"
+__version__ = "1.1.1"
 
 from .graph import MemoryGraph
 from .subgraph_optimizer import optimize_subgraph
