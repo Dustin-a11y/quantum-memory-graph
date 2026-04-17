@@ -1,0 +1,137 @@
+name: Security Review
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  code-review:
+    name: Code Review Scanner
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run security scanner
+        run: |
+          echo "═══════════════════════════════════════════"
+          echo "  CODE REVIEW SCAN"
+          echo "═══════════════════════════════════════════"
+
+          CRITICAL=0; HIGH=0; MEDIUM=0
+          
+          scan() {
+            local sev="$1" pattern="$2" desc="$3"
+            local matches
+            matches=$(grep -rn --include='*.py' --include='*.js' --include='*.ts' --include='*.sh' \
+              --include='*.yaml' --include='*.yml' --include='*.json' --include='*.env' \
+              -E "$pattern" . 2>/dev/null | grep -v '.github/' | grep -v 'node_modules/' || true)
+            if [[ -n "$matches" ]]; then
+              while IFS= read -r line; do
+                echo "  [$sev] $desc"
+                echo "    $line"
+                case "$sev" in
+                  CRITICAL) ((CRITICAL++)) ;;
+                  HIGH) ((HIGH++)) ;;
+                  MEDIUM) ((MEDIUM++)) ;;
+                esac
+              done <<< "$matches"
+            fi
+          }
+
+          # Secrets
+          scan CRITICAL '(api[_-]?key|api[_-]?secret|password|passwd|token|secret[_-]?key)\s*[=:]\s*["\x27][A-Za-z0-9+/=_-]{8,}' "Possible hardcoded secret"
+          scan CRITICAL 'AKIA[0-9A-Z]{16}' "AWS Access Key"
+          scan CRITICAL 'sk-[a-zA-Z0-9]{20,}' "OpenAI/Stripe secret key"
+          scan CRITICAL 'ghp_[a-zA-Z0-9]{36}' "GitHub PAT"
+
+          # Injection
+          scan CRITICAL 'pickle\.loads?\s*\(' "pickle deserialization"
+          scan CRITICAL 'yaml\.load\s*\(' "yaml.load without SafeLoader"
+          scan CRITICAL '__import__\s*\(' "Dynamic import"
+          scan CRITICAL 'subprocess\.(call|run|Popen)\s*\(.*shell\s*=\s*True' "Shell=True subprocess"
+
+          # SQL injection
+          scan CRITICAL 'execute\s*\(\s*[f"'"'"'].*\{' "f-string in SQL execute"
+
+          # Auth
+          scan HIGH 'verify\s*=\s*False' "SSL verification disabled"
+          scan HIGH 'CORS.*\*' "Wildcard CORS"
+
+          # Error handling
+          scan HIGH 'except\s*:' "Bare except"
+
+          echo ""
+          echo "  CRITICAL: $CRITICAL  HIGH: $HIGH  MEDIUM: $MEDIUM"
+
+          if [[ $CRITICAL -gt 0 ]]; then
+            echo "❌ FAILED — $CRITICAL critical issues found"
+            exit 1
+          elif [[ $HIGH -gt 0 ]]; then
+            echo "⚠️  WARNING — $HIGH high-severity issues"
+            exit 0
+          else
+            echo "✅ PASSED"
+            exit 0
+          fi
+
+  dependency-audit:
+    name: Dependency Audit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install and audit dependencies
+        run: |
+          echo "═══════════════════════════════════════════"
+          echo "  DEPENDENCY AUDIT"
+          echo "═══════════════════════════════════════════"
+
+          pip install pip-audit 2>/dev/null
+
+          # Install project deps
+          if [ -f requirements.txt ]; then
+            pip install -r requirements.txt 2>/dev/null
+          elif [ -f pyproject.toml ]; then
+            pip install -e ".[dev]" 2>/dev/null || pip install -e . 2>/dev/null || true
+          fi
+
+          echo ""
+          echo "── Security Vulnerabilities ──"
+          pip-audit --format json 2>/dev/null | python3 -c "
+          import json, sys
+          try:
+              data = json.load(sys.stdin)
+              vulns = [d for d in data.get('dependencies', []) if d.get('vulns')]
+              if not vulns:
+                  print('  ✅ No known vulnerabilities')
+              else:
+                  for dep in vulns:
+                      for v in dep['vulns']:
+                          fix = v.get('fix_versions', ['no fix'])
+                          print(f'  🔴 [{v[\"id\"]}] {dep[\"name\"]}=={dep[\"version\"]} → fix: {fix[0] if fix else \"none\"}')
+                  sys.exit(1)
+          except Exception as e:
+              print(f'  ⚠️ Audit parse error: {e}')
+          " || echo "  ℹ️  pip-audit completed with findings"
+
+          echo ""
+          echo "── Outdated Packages ──"
+          pip list --outdated --format json 2>/dev/null | python3 -c "
+          import json, sys
+          try:
+              data = json.load(sys.stdin)
+              if not data:
+                  print('  ✅ All packages up to date')
+              else:
+                  for pkg in sorted(data, key=lambda x: x['name'])[:15]:
+                      print(f'  {pkg[\"name\"]}: {pkg[\"version\"]} → {pkg[\"latest_version\"]}')
+          except:
+              print('  ⚠️ Could not check outdated packages')
+          "
