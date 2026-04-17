@@ -1,5 +1,5 @@
 """
-Quantum Memory Graph API Server — v1.0.0
+Quantum Memory Graph API Server — v1.1.0
 
 REST API for the full memory system:
   - Store/recall with graph + QAOA
@@ -320,7 +320,7 @@ async def api_stats():
 def main():
     host = os.environ.get("QMG_HOST", "0.0.0.0")
     port = int(os.environ.get("QMG_PORT", "8502"))
-    print(f"⚛️🧠 Quantum Memory Graph v1.0.0 starting on {host}:{port}...")
+    print(f"⚛️🧠 Quantum Memory Graph v1.1.0 starting on {host}:{port}...")
     uvicorn.run(app, host=host, port=port)
 
 

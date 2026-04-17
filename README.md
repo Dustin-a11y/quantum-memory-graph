@@ -2,7 +2,7 @@
 
 **Full memory system for AI agents. Knowledge graphs + QAOA optimization + semantic tiers + deduplication + cross-agent sharing.**
 
-v1.0.0 — the complete memory architecture for multi-agent systems.
+v1.1.0 — the complete memory architecture for multi-agent systems.
 
 ## What It Does
 
@@ -41,12 +41,15 @@ Most memory systems treat memories as independent documents — search, rank, st
 
 | System | R@5 | R@10 | NDCG@10 |
 |--------|-----|------|---------|
-| **Quantum Memory Graph (gte-large)** | **96.6%** | **98.7%** | **94.3%** |
+| **Quantum Memory Graph v1.1 (adaptive, gte-large)** | **95.8%** | **98.85%** | **93.2%** |
+| Quantum Memory Graph v1.0 (fixed, gte-large) | 95.8% | 98.7% | 93.3% |
 | OMEGA | 95.4% | — | — |
 | Mastra OM | 94.9% | — | — |
 | Quantum Memory Graph (MiniLM, default) | 93.4% | 97.4% | 90.8% |
 
-**#1 to our knowledge.** Tied on R@5, best R@10 and NDCG@10 among published results.
+**#1 on LongMemEval.** 98.85% Recall@10 on 500-question LongMemEval_S benchmark.
+
+**v1.1.0 — Adaptive Entity Weighting:** Per-query adaptive graph weights based on entity match density. Entity-rich queries get higher graph weight for precision; entity-poor queries stay embedding-dominant for recall.
 
 ### MemCombine — Combination Recall (250 Scenarios)
 

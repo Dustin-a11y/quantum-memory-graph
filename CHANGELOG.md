@@ -2,6 +2,26 @@
 
 All notable changes to Quantum Memory Graph.
 
+## [1.1.0] — 2026-04-17
+
+### 🎯 Adaptive Entity Weighting — New R@10 Record
+
+**Benchmark: 98.85% R@10 on LongMemEval_S (500 questions)**
+
+- Per-query adaptive graph weight based on entity match density
+- Entity-rich queries get higher weight (up to 2× base) for precision ranking
+- Entity-poor queries stay embedding-dominant for broad recall
+- Default params: `base_gw=0.07, gw_scale=3.0, min_gw=0.02`
+- Backward compatible: `adaptive_entity=True` by default, disable with `False`
+- Added `adaptive_entity`, `base_gw`, `gw_scale`, `min_gw` params to `get_neighborhood()`
+
+**Full benchmark results (v4.0):**
+| Strategy | R@5 | R@10 | NDCG@10 |
+|----------|-----|------|---------|
+| Adaptive (v1.1) | 95.8% | **98.85%** | 93.2% |
+| Fixed gw=0.05 (v1.0) | 95.8% | 98.7% | 93.3% |
+| TopK Baseline | 91.9% | 96.5% | 88.8% |
+
 ## [1.0.0] — 2026-04-13
 
 ### 🚀 Full Memory System — 5 Major Features

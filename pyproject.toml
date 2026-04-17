@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "quantum-memory-graph"
-version = "1.0.0"
+version = "1.1.0"
 description = "Relationship-aware memory for AI agents — knowledge graph + QAOA subgraph optimization"
 readme = "README.md"
 license = {text = "MIT"}
