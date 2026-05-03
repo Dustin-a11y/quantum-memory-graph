@@ -110,15 +110,6 @@ Optimal subgraph selection is NP-hard. Given N candidate memories, finding the b
 
 3. **Pipeline** (`pipeline.py`) — Unified `store()` and `recall()` interface.
 
-### Optional: MemPalace Integration
-
-Use [MemPalace](https://github.com/milla-jovovich/mempalace) (MIT, by @bensig) as the storage/retrieval backend for 96.6% base retrieval quality:
-
-```python
-from quantum_memory_graph.mempalace_bridge import store_memory, recall_memories
-
-# MemPalace stores verbatim → ChromaDB retrieves candidates → QAOA selects optimal subgraph
-result = recall_memories("What happened in the meeting?", K=5, use_qaoa=True)
 ```
 
 ## API Server
@@ -201,10 +192,8 @@ Validated on `ibm_fez` and `ibm_kingston` backends.
 
 MIT License — Copyright 2026 Coinkong (Chef's Attraction)
 
-Built with [MemPalace](https://github.com/milla-jovovich/mempalace) by @bensig (MIT License). See [THIRD-PARTY-LICENSES](THIRD-PARTY-LICENSES).
 
 ## Links
 
 - [quantum-agent-memory](https://github.com/Dustin-a11y/quantum-agent-memory) — The QAOA optimization engine
-- [MemPalace](https://github.com/milla-jovovich/mempalace) — Storage and retrieval backend
 - [MemCombine Benchmark](benchmarks/memcombine.py) — Test memory combination quality

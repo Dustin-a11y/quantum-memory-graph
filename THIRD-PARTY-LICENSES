@@ -1,14 +1,6 @@
 Third-Party Licenses
 ====================
 
-MemPalace
----------
-Copyright (c) 2025 Ben Sigman (@bensig)
-License: MIT
-Repository: https://github.com/milla-jovovich/mempalace
-Description: Memory palace storage and retrieval system for AI agents.
-Used as: pip dependency for verbatim memory storage and ChromaDB retrieval.
-
 Qiskit
 ------
 Copyright (c) IBM Corporation and contributors
@@ -24,3 +16,19 @@ License: Apache 2.0
 Repository: https://github.com/Qiskit/qiskit-aer
 Description: High-performance quantum computing simulators.
 Used as: pip dependency for quantum circuit simulation.
+
+sentence-transformers
+---------------------
+Copyright (c) UKPLab
+License: Apache 2.0
+Repository: https://github.com/UKPLab/sentence-transformers
+Description: Multilingual sentence embeddings.
+Used as: pip dependency for semantic similarity computation.
+
+NetworkX
+--------
+Copyright (c) NetworkX Developers
+License: BSD 3-Clause
+Repository: https://github.com/networkx/networkx
+Description: Network analysis in Python.
+Used as: pip dependency for knowledge graph construction and traversal.
