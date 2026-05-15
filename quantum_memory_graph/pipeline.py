@@ -213,14 +213,29 @@ def recall(
     adjacency = subgraph["adjacency"]
     
     # Phase 3: QAOA subgraph optimization
-    result = optimize_subgraph(
-        relevance_scores=candidate_scores,
-        adjacency=adjacency,
-        K=K,
-        alpha=alpha,
-        beta_conn=beta_conn,
-        gamma_cov=gamma_cov,
-    )
+    try:
+        result = optimize_subgraph(
+            relevance_scores=candidate_scores,
+            adjacency=adjacency,
+            K=K,
+            alpha=alpha,
+            beta_conn=beta_conn,
+            gamma_cov=gamma_cov,
+        )
+    except Exception as e:
+        # Ultimate fallback: use greedy if QAOA fails despite internal try/except
+        print(f"WARNING: Subgraph optimization failed ({e}), using greedy fallback")
+        from .subgraph_optimizer import _greedy_subgraph
+        greedy_sel, greedy_score = _greedy_subgraph(
+            candidate_scores, adjacency, K, alpha, beta_conn, gamma_cov
+        )
+        result = {
+            "selection": greedy_sel,
+            "score": greedy_score,
+            "greedy": {"selection": greedy_sel, "score": greedy_score},
+            "optimal": {"selection": greedy_sel, "score": greedy_score},
+            "method": "greedy_safety_net",
+        }
     
     selected_idxs = result["selection"]
     selected_memories = []

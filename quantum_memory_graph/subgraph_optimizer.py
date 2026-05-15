@@ -70,62 +70,79 @@ def optimize_subgraph(
     rel_norm = relevance_scores / (np.max(np.abs(relevance_scores)) + 1e-10)
     adj_norm = adjacency / (np.max(np.abs(adjacency)) + 1e-10)
     
-    # QAOA optimization
-    simulator = AerSimulator()
-    gamma_vals = np.linspace(0.1, np.pi, grid_size)
-    beta_vals = np.linspace(0.1, np.pi / 2, grid_size)
+    # QAOA optimization — wrapped in try/except since AerSimulator can
+    # crash or hang on machines without CUDA-optimized qiskit-aer
+    qaoa_ok = False
+    qaoa_selection, qaoa_score = list(range(K)), 0.0
     
-    best_cost = -float('inf')
-    best_bits = [0] * n
-    
-    for g in gamma_vals:
-        for b in beta_vals:
-            qc = _build_qaoa_circuit(
-                n, rel_norm, adj_norm, K,
-                g, b, alpha, beta_conn, gamma_cov, p_layers
-            )
-            
-            result = simulator.run(qc, shots=shots).result()
-            counts = result.get_counts()
-            
-            for bitstring, count in counts.items():
-                bits = [int(x) for x in bitstring[::-1]]
-                if len(bits) < n:
-                    bits.extend([0] * (n - len(bits)))
-                bits = bits[:n]
-                
-                if sum(bits) != K:
-                    continue
-                
-                cost = _evaluate_subgraph(
-                    bits, rel_norm, adj_norm, alpha, beta_conn, gamma_cov
+    try:
+        simulator = AerSimulator()
+        gamma_vals = np.linspace(0.1, np.pi, grid_size)
+        beta_vals = np.linspace(0.1, np.pi / 2, grid_size)
+        
+        best_cost = -float('inf')
+        best_bits = [0] * n
+        
+        for g in gamma_vals:
+            for b in beta_vals:
+                qc = _build_qaoa_circuit(
+                    n, rel_norm, adj_norm, K,
+                    g, b, alpha, beta_conn, gamma_cov, p_layers
                 )
                 
-                if cost > best_cost:
-                    best_cost = cost
-                    best_bits = bits[:]
-    
-    qaoa_selection = [i for i in range(n) if best_bits[i]]
-    qaoa_score = _evaluate_subgraph(
-        best_bits, rel_norm, adj_norm, alpha, beta_conn, gamma_cov
-    )
+                result = simulator.run(qc, shots=shots).result()
+                counts = result.get_counts()
+                
+                for bitstring, count in counts.items():
+                    bits = [int(x) for x in bitstring[::-1]]
+                    if len(bits) < n:
+                        bits.extend([0] * (n - len(bits)))
+                    bits = bits[:n]
+                    
+                    if sum(bits) != K:
+                        continue
+                    
+                    cost = _evaluate_subgraph(
+                        bits, rel_norm, adj_norm, alpha, beta_conn, gamma_cov
+                    )
+                    
+                    if cost > best_cost:
+                        best_cost = cost
+                        best_bits = bits[:]
+        
+        qaoa_selection = [i for i in range(n) if best_bits[i]]
+        qaoa_score = _evaluate_subgraph(
+            best_bits, rel_norm, adj_norm, alpha, beta_conn, gamma_cov
+        )
+        qaoa_ok = True
+    except Exception as e:
+        # QAOA simulator failed — will fall back to greedy below
+        print(f"WARNING: QAOA simulator failed ({e}), falling back to greedy")
     
     # Classical comparison: greedy
     greedy_sel, greedy_score = _greedy_subgraph(
         rel_norm, adj_norm, K, alpha, beta_conn, gamma_cov
     )
     
+    # Use QAOA results if available, otherwise fall back to greedy
+    if qaoa_ok:
+        final_selection, final_score = qaoa_selection, qaoa_score
+        method = "qaoa"
+    else:
+        final_selection, final_score = greedy_sel, greedy_score
+        method = "greedy_fallback"
+
     # Brute force optimal (if small enough)
     if n <= 16:
         optimal_sel, optimal_score = _brute_force_subgraph(
             rel_norm, adj_norm, K, alpha, beta_conn, gamma_cov
         )
     else:
-        optimal_sel, optimal_score = qaoa_selection, qaoa_score
-    
+        optimal_sel, optimal_score = final_selection, final_score
+
     return {
-        "selection": qaoa_selection,
-        "score": float(qaoa_score),
+        "selection": final_selection,
+        "score": float(final_score),
         "greedy": {
             "selection": greedy_sel,
             "score": float(greedy_score),
@@ -135,12 +152,12 @@ def optimize_subgraph(
             "score": float(optimal_score),
         },
         "qaoa_vs_greedy_pct": (
-            (qaoa_score / greedy_score * 100) if greedy_score > 0 else 100
+            (final_score / greedy_score * 100) if greedy_score > 0 else 100
         ),
         "qaoa_vs_optimal_pct": (
-            (qaoa_score / optimal_score * 100) if optimal_score > 0 else 100
+            (final_score / optimal_score * 100) if optimal_score > 0 else 100
         ),
-        "method": "qaoa",
+        "method": method,
         "n_candidates": n,
         "K": K,
     }
