@@ -7,6 +7,7 @@ Copyright 2026 Coinkong (Chef's Attraction). MIT License.
 """
 
 import os
+import pickle
 from fastapi import FastAPI, Request, HTTPException, Depends
 from pydantic import BaseModel
 from typing import Optional, List
@@ -51,6 +52,33 @@ async def startup():
     stm = get_stm()
     print(f"  Model: {_graph._model_name}")
     print(f"  Short-term memory: enabled (recency + working memory + conversation)")
+
+    # Load persisted graph from disk if available
+    data_dir = os.environ.get("QMG_DATA_DIR", "")
+    if data_dir:
+        pkl_path = os.path.join(data_dir, "graph.pkl")
+        if os.path.exists(pkl_path):
+            try:
+                _graph = MemoryGraph.load(pkl_path, model=QMG_MODEL)
+                set_graph(_graph)
+                stats = _graph.stats()
+                print(f"  Loaded {stats['nodes']} memories from disk ({pkl_path})")
+            except Exception as e:
+                print(f"  WARNING: Failed to load graph from {pkl_path}: {e}")
+
+
+@app.on_event("shutdown")
+async def shutdown():
+    data_dir = os.environ.get("QMG_DATA_DIR", "")
+    if data_dir:
+        os.makedirs(data_dir, exist_ok=True)
+        pkl_path = os.path.join(data_dir, "graph.pkl")
+        try:
+            g = get_graph()
+            g.save(pkl_path)
+            print(f"  Saved {g.stats()['nodes']} memories to {pkl_path}")
+        except Exception as e:
+            print(f"  WARNING: Failed to save graph: {e}")
 
 
 @app.get("/")

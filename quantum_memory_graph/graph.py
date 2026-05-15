@@ -14,6 +14,7 @@ Copyright 2026 Coinkong (Chef's Attraction). MIT License.
 """
 
 import hashlib
+import pickle
 import numpy as np
 import networkx as nx
 from typing import List, Dict, Optional, Tuple
@@ -356,3 +357,28 @@ class MemoryGraph:
             "avg_degree": (2 * self.graph.number_of_edges() / 
                           max(self.graph.number_of_nodes(), 1)),
         }
+
+    def save(self, path: str):
+        """Persist graph to disk as pickle."""
+        with open(path, 'wb') as f:
+            pickle.dump(self, f)
+
+    @staticmethod
+    def load(path: str, model: str = None) -> 'MemoryGraph':
+        """Load persisted graph from pickle."""
+        with open(path, 'rb') as f:
+            obj = pickle.load(f)
+        
+        # Handle old format: dict with G + memories
+        if isinstance(obj, dict) and 'G' in obj and 'memories' in obj:
+            from .graph import MemoryGraph as MG
+            g = MG(similarity_threshold=0.3, model=model)
+            g.graph = obj['G']
+            g.memories = obj['memories']
+            return g
+        
+        # New format: serialized MemoryGraph
+        if model:
+            obj._model_name = model
+            obj._embedder = None  # Force re-init on next use
+        return obj
