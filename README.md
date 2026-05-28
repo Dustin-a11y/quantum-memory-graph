@@ -21,14 +21,18 @@ When the task is "find memories that work *together*," graph-aware quantum selec
 
 Tested on the official [LongMemEval benchmark](https://arxiv.org/abs/2410.10813) for long-term memory in AI agents:
 
-| Method | R@5 | R@10 | NDCG@10 |
-|--------|-----|------|---------|
-| OMEGA (prev SOTA) | 89.2% | 94.1% | 87.5% |
-| Mastra OM | 91.0% | 95.2% | 89.1% |
-| **QMG (Ours)** | **95.8%** | **98.85%** | **93.2%** |
+| Method | R@1 | R@5 | R@10 | NDCG@10 |
+|--------|:---:|:---:|:----:|:-------:|
+| OMEGA (prev SOTA) | — | 89.2% | 94.1% | 87.5% |
+| Mastra OM | — | 91.0% | 95.2% | 89.1% |
+| **QMG v1.1 (published #1)** | — | **95.8%** | **98.85%** | **93.2%** |
+| **QMG v1.2 (official, this repo)** 🏆 | **90.6%** | **98.6%** | **99.4%** | **0.9426** |
 
-**Benchmark run:** 250 scenarios, 320 weight combinations, 12 hours on DGX Spark GB10.  
-**Optimal weights:** α=0.3, β=0.15, γ=0.35, threshold=0.25
+**Benchmark run:** 500 questions, chunked gte-large embeddings (500-char blocks, 100-char overlap, mean-of-top-3 session scoring). Verified on DGX Spark GB10 (CUDA, ~53 min).
+
+**Chunking technique:** Each session split into overlapping 500-char chunks → gte-large embedding → per-session score = mean of top-3 chunk scores → rank by score. This recovers the v7 methodology that achieved our original #1, now verified with a clean reproducible pipeline.
+
+**See:** `benchmarks/run_longmemeval_chunked_staged.py` for the exact benchmark code, `benchmarks/longmemeval_chunked_staged_results.json` for full per-question results.
 
 
 ## Install
