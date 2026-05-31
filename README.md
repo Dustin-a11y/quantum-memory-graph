@@ -34,6 +34,19 @@ Tested on the official [LongMemEval benchmark](https://arxiv.org/abs/2410.10813)
 
 **See:** `benchmarks/run_longmemeval_chunked_staged.py` for the exact benchmark code, `benchmarks/longmemeval_chunked_staged_results.json` for full per-question results.
 
+## 🧠 End-to-End QA Benchmark
+
+Beyond retrieval, QMG powers full question-answering pipelines. With 98.6% R@5 retrieval, the bottleneck shifts from finding the right sessions to reasoning across them.
+
+| Gen Model | Overall | single-session | multi-session | temporal-reasoning | knowledge-update |
+|-----------|:-------:|:--------------:|:-------------:|:------------------:|:----------------:|
+| deepseek-chat | 37.4% | 74.8% | 14.3% | 13.5% | 38.5% |
+| deepseek-reasoner (R1) 🏆 | **66.8%** | **82.6%** | **74.4%** | **37.6%** | **65.4%** |
+| Δ | **+29.4%** | +7.8% | +60.1% | +24.1% | +26.9% |
+
+**Key insight:** Retrieval is elite (98.6% R@5). The QA gap is LLM reasoning, not QMG. Swapping the generator from chat to reasoning model doubled multi-session accuracy from 14% → 74%.
+
+**Benchmark:** 500 questions, chunked gte-large retrieval (TOP_K=10). `deepseek-reasoner` generates answers, `deepseek-chat` judges. Script: `benchmarks/run_longmemeval_r1_gen.py`, full results: `benchmarks/longmemeval_e2e_r1_results.json`.
 
 ## Install
 
