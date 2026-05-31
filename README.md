@@ -18,7 +18,11 @@ MemCombine tests what no existing benchmark measures — **memory combination qu
 
 When the task is "find memories that work *together*," graph-aware quantum selection crushes pure similarity search.
 
-> **Note:** The 98.6% R@5 LongMemEval result uses QMG's chunked embedding retrieval (Stage 1). QAOA refinement (Stage 2) shines on graph-aware combination tasks where connectivity matters -- see MemCombine above. Pure retrieval benchmarks measure embedding quality; the quantum advantage is in structured selection.
+> **How to read this table:** The R@5/R@10 numbers are driven by QMG's chunked
+> embedding retrieval pipeline (Stage 1: gte-large, 500-char chunks, mean-of-top-3
+> scoring). QAOA (Stage 2) refines the top-14 candidates for relationship-aware
+> selection — its advantage shows up in MemCombine (combination quality) rather
+> than raw recall rank. The pipeline as a whole achieves #1.
 
 ## 🏆 #1 on LongMemEval (ICLR 2025 Benchmark)
 
@@ -29,7 +33,7 @@ Tested on the official [LongMemEval benchmark](https://arxiv.org/abs/2410.10813)
 | OMEGA (prev SOTA) | — | 89.2% | 94.1% | 87.5% |
 | Mastra OM | — | 91.0% | 95.2% | 89.1% |
 | **QMG v1.1 (published #1)** | — | **95.8%** | **98.85%** | **93.2%** |
-| **QMG v1.2 — chunked retrieval pipeline** 🏆 | **90.6%** | **98.6%** | **99.4%** | **0.9426** |
+| **QMG v1.2 — chunked retrieval pipeline** 🏆 | **90.6%** | **98.6%** | **99.4%** | **94.26%** |
 
 **Benchmark run:** 500 questions, chunked gte-large embeddings (500-char blocks, 100-char overlap, mean-of-top-3 session scoring). Verified on DGX Spark GB10 (CUDA, ~53 min).
 
