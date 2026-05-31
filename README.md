@@ -6,9 +6,9 @@ Every memory system treats memories as independent documents — search, rank, s
 
 Quantum Memory Graph maps these relationships, then uses QAOA to find the optimal *combination* of memories — not just the most relevant individuals, but the best connected subgraph that gives your agent maximum context.
 
-## Benchmark: MemCombine
+## Benchmark: MemCombine (Internal — Memory Combination)
 
-We created MemCombine to test what no existing benchmark measures — **memory combination quality**.
+MemCombine tests what no existing benchmark measures — **memory combination quality**, where QAOA graph selection finds coherent subsets that embedding similarity misses.
 
 | Method | Coverage | Evidence Recall | F1 | Perfect |
 |--------|----------|----------------|----|---------|
@@ -17,6 +17,9 @@ We created MemCombine to test what no existing benchmark measures — **memory c
 | **Advantage** | **+26.8%** | **+25.4%** | **+24.5%** | |
 
 When the task is "find memories that work *together*," graph-aware quantum selection crushes pure similarity search.
+
+> **Note:** The 98.6% R@5 LongMemEval result uses QMG's chunked embedding retrieval (Stage 1). QAOA refinement (Stage 2) shines on graph-aware combination tasks where connectivity matters -- see MemCombine above. Pure retrieval benchmarks measure embedding quality; the quantum advantage is in structured selection.
+
 ## 🏆 #1 on LongMemEval (ICLR 2025 Benchmark)
 
 Tested on the official [LongMemEval benchmark](https://arxiv.org/abs/2410.10813) for long-term memory in AI agents:
@@ -26,27 +29,13 @@ Tested on the official [LongMemEval benchmark](https://arxiv.org/abs/2410.10813)
 | OMEGA (prev SOTA) | — | 89.2% | 94.1% | 87.5% |
 | Mastra OM | — | 91.0% | 95.2% | 89.1% |
 | **QMG v1.1 (published #1)** | — | **95.8%** | **98.85%** | **93.2%** |
-| **QMG v1.2 (official, this repo)** 🏆 | **90.6%** | **98.6%** | **99.4%** | **0.9426** |
+| **QMG v1.2 — chunked retrieval pipeline** 🏆 | **90.6%** | **98.6%** | **99.4%** | **0.9426** |
 
 **Benchmark run:** 500 questions, chunked gte-large embeddings (500-char blocks, 100-char overlap, mean-of-top-3 session scoring). Verified on DGX Spark GB10 (CUDA, ~53 min).
 
 **Chunking technique:** Each session split into overlapping 500-char chunks → gte-large embedding → per-session score = mean of top-3 chunk scores → rank by score. This recovers the v7 methodology that achieved our original #1, now verified with a clean reproducible pipeline.
 
 **See:** `benchmarks/run_longmemeval_chunked_staged.py` for the exact benchmark code, `benchmarks/longmemeval_chunked_staged_results.json` for full per-question results.
-
-## 🧠 End-to-End QA Benchmark
-
-Beyond retrieval, QMG powers full question-answering pipelines. With 98.6% R@5 retrieval, the bottleneck shifts from finding the right sessions to reasoning across them.
-
-| Gen Model | Overall | single-session | multi-session | temporal-reasoning | knowledge-update |
-|-----------|:-------:|:--------------:|:-------------:|:------------------:|:----------------:|
-| deepseek-chat | 37.4% | 74.8% | 14.3% | 13.5% | 38.5% |
-| deepseek-reasoner (R1) 🏆 | **66.8%** | **82.6%** | **74.4%** | **37.6%** | **65.4%** |
-| Δ | **+29.4%** | +7.8% | +60.1% | +24.1% | +26.9% |
-
-**Key insight:** Retrieval is elite (98.6% R@5). The QA gap is LLM reasoning, not QMG. Swapping the generator from chat to reasoning model doubled multi-session accuracy from 14% → 74%.
-
-**Benchmark:** 500 questions, chunked gte-large retrieval (TOP_K=10). `deepseek-reasoner` generates answers, `deepseek-chat` judges. Script: `benchmarks/run_longmemeval_r1_gen.py`, full results: `benchmarks/longmemeval_e2e_r1_results.json`.
 
 ## Install
 
