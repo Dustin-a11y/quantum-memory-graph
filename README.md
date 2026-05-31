@@ -4,26 +4,6 @@
 
 Every memory system treats memories as independent documents — search, rank, stuff into context. But memories aren't independent. They have *relationships*. "The team chose React" becomes 10x more useful paired with "because of ecosystem maturity" and "FastAPI handles the backend."
 
-Quantum Memory Graph maps these relationships, then uses QAOA to find the optimal *combination* of memories — not just the most relevant individuals, but the best connected subgraph that gives your agent maximum context.
-
-## Benchmark: MemCombine (Internal — Memory Combination)
-
-MemCombine tests what no existing benchmark measures — **memory combination quality**, where QAOA graph selection finds coherent subsets that embedding similarity misses.
-
-| Method | Coverage | Evidence Recall | F1 | Perfect |
-|--------|----------|----------------|----|---------|
-| Embedding Top-K | 69.9% | 65.6% | 68.1% | 1/5 |
-| **Graph + QAOA** | **96.7%** | **91.0%** | **92.6%** | **4/5** |
-| **Advantage** | **+26.8%** | **+25.4%** | **+24.5%** | |
-
-When the task is "find memories that work *together*," graph-aware quantum selection crushes pure similarity search.
-
-> **How to read this table:** The R@5/R@10 numbers are driven by QMG's chunked
-> embedding retrieval pipeline (Stage 1: gte-large, 500-char chunks, mean-of-top-3
-> scoring). QAOA (Stage 2) refines the top-14 candidates for relationship-aware
-> selection — its advantage shows up in MemCombine (combination quality) rather
-> than raw recall rank. The pipeline as a whole achieves #1.
-
 ## 🏆 #1 on LongMemEval (ICLR 2025 Benchmark)
 
 Tested on the official [LongMemEval benchmark](https://arxiv.org/abs/2410.10813) for long-term memory in AI agents:
@@ -166,10 +146,7 @@ result = recall(
 )
 ```
 
-### Run MemCombine Benchmark
-
 ```python
-from benchmarks.memcombine import run_benchmark
 
 def my_recall(memories, query, K):
     # Your recall implementation
@@ -202,8 +179,6 @@ Validated on `ibm_fez` and `ibm_kingston` backends.
 
 MIT License — Copyright 2026 Coinkong (Chef's Attraction)
 
-
 ## Links
 
 - [quantum-agent-memory](https://github.com/Dustin-a11y/quantum-agent-memory) — The QAOA optimization engine
-- [MemCombine Benchmark](benchmarks/memcombine.py) — Test memory combination quality
