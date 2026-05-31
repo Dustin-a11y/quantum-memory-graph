@@ -13,7 +13,7 @@ from typing import List, Dict, Optional
 from datetime import datetime
 
 from .graph import MemoryGraph
-from .subgraph_optimizer import optimize_subgraph
+from .subgraph_optimizer import optimize_subgraph as _std_optimize_subgraph
 from .recency import ShortTermMemory
 
 
@@ -139,6 +139,7 @@ def recall(
     max_candidates: int = 14,
     use_recency: bool = True,
     stm: ShortTermMemory = None,
+    method: str = "qaoa",
 ) -> Dict:
     """
     Recall optimal memories for a query.
@@ -170,6 +171,14 @@ def recall(
     if not g.memories:
         return {"ok": True, "memories": [], "method": "empty"}
     
+    today_str = datetime.now().strftime("%Y-%m-%d")
+    
+    def _tier(mem):
+        """Determine if a memory is warm (today) or cold (older)."""
+        if mem.timestamp and today_str in str(mem.timestamp):
+            return "warm"
+        return "cold"
+    
     # Phase 1: Graph neighborhood search
     neighborhood = g.get_neighborhood(
         query=query, hops=hops, top_seeds=top_seeds
@@ -198,6 +207,7 @@ def recall(
                 "entities": g.memories[cid].entities,
                 "relevance": float(candidate_scores[i]),
                 "source": g.memories[cid].source,
+                "tier": _tier(g.memories[cid]),
             }
             for i, cid in enumerate(candidate_ids)
         ]
@@ -206,22 +216,66 @@ def recall(
             "memories": memories,
             "method": "all_candidates",
             "candidates": len(candidate_ids),
+            "tier_counts": {
+                "warm": sum(1 for m in memories if m["tier"] == "warm"),
+                "cold": sum(1 for m in memories if m["tier"] == "cold"),
+            },
         }
     
-    # Phase 2: Extract subgraph data
-    subgraph = g.get_subgraph_data(candidate_ids)
-    adjacency = subgraph["adjacency"]
+    # Phase 2: Synergy rerank or QAOA subgraph
+    if method == "synergy":
+        try:
+            from .synergy_reranker import select as synergy_select
+            # Build texts for candidates
+            cand_texts = [g.memories[cid].text for cid in candidate_ids]
+            selected_synergy = synergy_select(candidate_scores, cand_texts, query, K)
+            
+            selected_memories = []
+            for idx in selected_synergy:
+                cid = candidate_ids[idx]
+                mem = g.memories[cid]
+                selected_memories.append({
+                    "text": mem.text,
+                    "entities": mem.entities,
+                    "relevance": float(candidate_scores[idx]),
+                    "source": mem.source,
+                    "tier": _tier(mem),
+                    "connections": [],
+                })
+            return {
+                "ok": True,
+                "memories": selected_memories,
+                "method": "synergy",
+                "candidates": len(candidate_ids),
+                "K": K,
+            }
+        except Exception as e:
+            print(f"WARNING: Synergy selection failed ({e}), falling back to QAOA")
     
     # Phase 3: QAOA subgraph optimization
+    subgraph = g.get_subgraph_data(candidate_ids)
+    adjacency = subgraph["adjacency"]
+    # Use PCE for larger candidate sets (14+), standard QAOA for smaller
     try:
-        result = optimize_subgraph(
-            relevance_scores=candidate_scores,
-            adjacency=adjacency,
-            K=K,
-            alpha=alpha,
-            beta_conn=beta_conn,
-            gamma_cov=gamma_cov,
-        )
+        if len(candidate_ids) > 14:
+            from .pce_optimizer import optimize_subgraph_pce
+            result = optimize_subgraph_pce(
+                relevance_scores=candidate_scores,
+                adjacency=adjacency,
+                K=K,
+                alpha=alpha,
+                beta_conn=beta_conn,
+                gamma_cov=gamma_cov,
+            )
+        else:
+            result = _std_optimize_subgraph(
+                relevance_scores=candidate_scores,
+                adjacency=adjacency,
+                K=K,
+                alpha=alpha,
+                beta_conn=beta_conn,
+                gamma_cov=gamma_cov,
+            )
     except Exception as e:
         # Ultimate fallback: use greedy if QAOA fails despite internal try/except
         print(f"WARNING: Subgraph optimization failed ({e}), using greedy fallback")
@@ -239,6 +293,14 @@ def recall(
     
     selected_idxs = result["selection"]
     selected_memories = []
+    
+    # Compute comparison pcts safely
+    qaoa_score_val = result.get("qaoa", {}).get("score", result["score"])
+    greedy_score_val = result.get("greedy", {}).get("score", result["score"])
+    optimal_score_val = result.get("optimal", {}).get("score", result["score"])
+    qaoa_vs_greedy = (qaoa_score_val / greedy_score_val * 100) if greedy_score_val > 0 else 100
+    qaoa_vs_optimal = (qaoa_score_val / optimal_score_val * 100) if optimal_score_val > 0 else 100
+    
     for idx in selected_idxs:
         cid = candidate_ids[idx]
         mem = g.memories[cid]
@@ -261,6 +323,7 @@ def recall(
             "entities": mem.entities,
             "relevance": float(candidate_scores[idx]),
             "source": mem.source,
+            "tier": _tier(mem),
             "connections": connections,
         })
     
@@ -273,7 +336,11 @@ def recall(
         "qaoa_score": result["score"],
         "greedy_score": result["greedy"]["score"],
         "optimal_score": result["optimal"]["score"],
-        "qaoa_vs_optimal_pct": result["qaoa_vs_optimal_pct"],
-        "qaoa_vs_greedy_pct": result["qaoa_vs_greedy_pct"],
+        "qaoa_vs_optimal_pct": round(float(qaoa_vs_optimal), 2),
+        "qaoa_vs_greedy_pct": round(float(qaoa_vs_greedy), 2),
+        "tier_counts": {
+            "warm": sum(1 for m in selected_memories if m["tier"] == "warm"),
+            "cold": sum(1 for m in selected_memories if m["tier"] == "cold"),
+        },
         "graph_stats": g.stats(),
     }
