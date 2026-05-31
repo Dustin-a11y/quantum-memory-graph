@@ -6,7 +6,7 @@ Every memory system treats memories as independent documents — search, rank, s
 
 ## 🏆 #1 on LongMemEval (ICLR 2025 Benchmark)
 
-Tested on the official [LongMemEval benchmark](https://arxiv.org/abs/2410.10813) for long-term memory in AI agents:
+Tested on the official [LongMemEval benchmark](https://arxiv.org/abs/2410.10813) — [verified submission](https://github.com/xiaowu0162/LongMemEval/issues/46).
 
 | Method | R@1 | R@5 | R@10 | NDCG@10 |
 |--------|:---:|:---:|:----:|:-------:|
