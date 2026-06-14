@@ -181,4 +181,4 @@ MIT License — Copyright 2026 Coinkong (Chef's Attraction)
 
 ## Links
 
-- [quantum-agent-memory](https://github.com/Dustin-a11y/quantum-agent-memory) — The QAOA optimization engine
+- [GitHub](https://github.com/Dustin-a11y/quantum-memory-graph) — Source code and benchmarks
