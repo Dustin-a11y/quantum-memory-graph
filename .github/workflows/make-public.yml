@@ -26,6 +26,13 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Extract version from tag
+        id: version
+        run: |
+          VERSION=${GITHUB_REF#refs/tags/v}
+          if [ "$VERSION" = "${GITHUB_REF}" ]; then VERSION="dev"; fi
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+
       - name: Build and push Docker image
         uses: docker/build-push-action@v6
         with:
@@ -34,9 +41,9 @@ jobs:
           push: true
           tags: |
             ghcr.io/${{ env.OWNER_LC }}/quantum-memory-graph:latest
-            ghcr.io/${{ env.OWNER_LC }}/quantum-memory-graph:v1.2.1
+            ghcr.io/${{ env.OWNER_LC }}/quantum-memory-graph:v${{ steps.version.outputs.version }}
           labels: |
             org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
             org.opencontainers.image.description=Knowledge graph + QAOA subgraph optimization for AI agent memory
             org.opencontainers.image.licenses=MIT
-            org.opencontainers.image.version=1.2.1
+            org.opencontainers.image.version=${{ steps.version.outputs.version }}
