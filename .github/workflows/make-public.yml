@@ -1,16 +1,39 @@
-name: Make Package Public
+name: Publish Docker Image (Public)
 on:
   workflow_dispatch:
+  push:
+    paths:
+      - 'Dockerfile'
+
+permissions:
+  contents: read
+  packages: write
 
 jobs:
-  make-public:
+  build-and-push:
     runs-on: ubuntu-latest
     steps:
-      - name: Make container package public
-        run: |
-          gh api --method PATCH \
-            -H "Accept: application/vnd.github+json" \
-            "/user/packages/container/quantum-memory-graph/visibility" \
-            -f visibility=public
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./Dockerfile
+          push: true
+          tags: |
+            ghcr.io/${{ github.repository_owner }}/quantum-memory-graph:latest
+            ghcr.io/${{ github.repository_owner }}/quantum-memory-graph:v1.2.1
+          labels: |
+            org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
+            org.opencontainers.image.description=Knowledge graph + QAOA subgraph optimization for AI agent memory
+            org.opencontainers.image.licenses=MIT
+            org.opencontainers.image.version=1.2.1
