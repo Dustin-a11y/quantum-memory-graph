@@ -16,6 +16,9 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Set lowercase owner
+        run: echo "OWNER_LC=${GITHUB_REPOSITORY_OWNER,,}" >> $GITHUB_ENV
+
       - name: Log in to GHCR
         uses: docker/login-action@v3
         with:
@@ -30,8 +33,8 @@ jobs:
           file: ./Dockerfile
           push: true
           tags: |
-            ghcr.io/${{ github.repository_owner }}/quantum-memory-graph:latest
-            ghcr.io/${{ github.repository_owner }}/quantum-memory-graph:v1.2.1
+            ghcr.io/${{ env.OWNER_LC }}/quantum-memory-graph:latest
+            ghcr.io/${{ env.OWNER_LC }}/quantum-memory-graph:v1.2.1
           labels: |
             org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
             org.opencontainers.image.description=Knowledge graph + QAOA subgraph optimization for AI agent memory
