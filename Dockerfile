@@ -3,7 +3,7 @@ FROM python:3.12-slim
 LABEL org.opencontainers.image.source="https://github.com/Dustin-a11y/quantum-memory-graph"
 LABEL org.opencontainers.image.description="Knowledge graph + QAOA subgraph optimization for AI agent memory"
 LABEL org.opencontainers.image.licenses="MIT"
-LABEL org.opencontainers.image.version="1.2.1"
+LABEL org.opencontainers.image.version="1.2.2"
 
 WORKDIR /app
 

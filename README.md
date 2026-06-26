@@ -1,5 +1,12 @@
 # Quantum Memory Graph ⚛️🧠
 
+[![PyPI version](https://img.shields.io/pypi/v/quantum-memory-graph)](https://pypi.org/project/quantum-memory-graph/)
+[![PyPI downloads](https://img.shields.io/pypi/dm/quantum-memory-graph)](https://pypi.org/project/quantum-memory-graph/)
+[![LongMemEval](https://img.shields.io/badge/LongMemEval-%231-94.26%25_NDCG-brightgreen)](https://github.com/xiaowu0162/LongMemEval/issues/46)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Python 3.9+](https://img.shields.io/badge/python-3.9+-blue.svg)](https://www.python.org/downloads/)
+[![Docker](https://img.shields.io/badge/Docker-ghcr.io-blue)](https://github.com/users/Dustin-a11y/packages/container/package/quantum-memory-graph)
+
 **Relationship-aware memory for AI agents. Knowledge graphs + quantum-optimized subgraph selection.**
 
 Every memory system treats memories as independent documents — search, rank, stuff into context. But memories aren't independent. They have *relationships*. "The team chose React" becomes 10x more useful paired with "because of ecosystem maturity" and "FastAPI handles the backend."
@@ -24,7 +31,20 @@ Tested on the official [LongMemEval benchmark](https://arxiv.org/abs/2410.10813)
 ## Install
 
 ```bash
+# Python (all platforms)
 pip install quantum-memory-graph
+
+# macOS
+brew tap Dustin-a11y/qmg && brew install quantum-memory-graph
+
+# Docker
+docker pull ghcr.io/dustin-a11y/quantum-memory-graph:latest
+
+# Node.js (thin wrapper)
+npm install -g qmg
+
+# Conda (pending — PR #33723)
+conda install -c conda-forge quantum-memory-graph
 ```
 
 ## Quick Start
@@ -182,3 +202,7 @@ MIT License — Copyright 2026 Coinkong (Chef's Attraction)
 ## Links
 
 - [GitHub](https://github.com/Dustin-a11y/quantum-memory-graph) — Source code and benchmarks
+- [mem0 vs QMG Comparison](./COMPARISON.md) — How QMG differs from the incumbent
+- [Hermes Agent Case Study](./CASE_STUDY_HERMES.md) — QMG in production with 12+ agents
+- [LongMemEval Submission](https://github.com/xiaowu0162/LongMemEval/issues/46) — Verified #1 ranking
+- [Conda-forge PR](https://github.com/conda-forge/staged-recipes/pull/33723) — Track conda availability
