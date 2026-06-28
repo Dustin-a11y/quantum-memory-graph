@@ -21,12 +21,25 @@ Tested on the official [LongMemEval benchmark](https://arxiv.org/abs/2410.10813)
 | Mastra OM | — | 91.0% | 95.2% | 89.1% |
 | **QMG v1.1 (published #1)** | — | **95.8%** | **98.85%** | **93.2%** |
 | **QMG v1.2 — chunked retrieval pipeline** 🏆 | **90.6%** | **98.6%** | **99.4%** | **94.26%** |
+| **QMG v1.3 — +BM25 hybrid retrieval** 🥇 | 90.0% | **99.0%** | **99.8%** | 93.32% |
+
+**Competitor comparison (same benchmark):**
+
+| System | R@5 | Source |
+|--------|:---:|--------|
+| **QMG v1.3 (BM25 hybrid)** | **99.0%** | This repo — `benchmarks/longmemeval_bm25_hybrid_results.json` |
+| QMG v1.2 (chunked gte-large) | 98.6% | This repo |
+| Mem0 (Apr 2026) | 94.8% | [mem0.ai/research](https://mem0.ai/research) |
+| Mastra OM | 91.0% | [LongMemEval #46](https://github.com/xiaowu0162/LongMemEval/issues/46) |
+| OMEGA (prev SOTA) | 89.2% | LongMemEval paper |
 
 **Benchmark run:** 500 questions, chunked gte-large embeddings (500-char blocks, 100-char overlap, mean-of-top-3 session scoring). Verified on DGX Spark GB10 (CUDA, ~53 min).
 
 **Chunking technique:** Each session split into overlapping 500-char chunks → gte-large embedding → per-session score = mean of top-3 chunk scores → rank by score. This recovers the v7 methodology that achieved our original #1, now verified with a clean reproducible pipeline.
 
-**See:** `benchmarks/run_longmemeval_chunked_staged.py` for the exact benchmark code, `benchmarks/longmemeval_chunked_staged_results.json` for full per-question results.
+**BM25 hybrid (v1.3):** Keyword matching (BM25) fused with embedding scores at 70/30 ratio using stopword-filtered tokenization. Provides +0.4% R@5 lift at the ceiling — significant when every miss counts. The `rank_bm25` package is optional — falls back to embedding-only if not installed.
+
+**See:** `benchmarks/run_longmemeval_chunked_staged.py` and `benchmarks/run_longmemeval_hybrid.py` for exact benchmark code. `benchmarks/longmemeval_bm25_hybrid_results.json` for full per-question results.
 
 ## Install
 
@@ -76,7 +89,7 @@ Query: "What's the tech stack?"
         │
         ▼
 ┌─────────────────────┐
-│  1. Graph Search     │  Embedding similarity + multi-hop traversal
+│  1. Hybrid Search     │  BM25 keyword + embedding cosine (70/30 fusion)
 │     Find neighbors   │  Discovers memories connected to relevant ones
 └────────┬────────────┘
          │ 14 candidates
@@ -109,12 +122,13 @@ Optimal subgraph selection is NP-hard. Given N candidate memories, finding the b
 
 1. **Knowledge Graph** (`graph.py`) — Memories are nodes. Relationships are weighted edges based on:
    - Semantic similarity (embedding cosine distance)
+   - BM25 keyword matching (70/30 hybrid fusion)
    - Entity co-occurrence (shared people, projects, concepts)
    - Temporal proximity (memories close in time)
    - Source proximity (same conversation/document)
 
 2. **Subgraph Optimizer** (`subgraph_optimizer.py`) — QAOA circuit that maximizes:
-   - α × relevance (individual memory scores)
+   - α × relevance (individual memory scores from hybrid BM25+embedding)
    - β × connectivity (edge weights within selected subgraph)
    - γ × coverage (topic diversity across selection)
 
