@@ -96,6 +96,6 @@ print(f"  Tuned vs Default: {(r_tuned['coverage']-r_default['coverage'])*100:+.1
 
 output = {"benchmark": "MemCombine", "scenarios": 250, "K": K,
           "topk": r_topk, "default": r_default, "tuned": r_tuned, "params": TUNED}
-with open("/home/dt/Projects/quantum-memory-graph/benchmarks/results_250.json", "w") as f:
+with open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "results_250.json"), "w") as f:
     json.dump(output, f, indent=2, default=str)
 print(f"\nSaved to results_250.json", flush=True)

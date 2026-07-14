@@ -209,7 +209,7 @@ def main():
         "K": K,
         "results": results,
     }
-    with open("/home/dt/Projects/quantum-memory-graph/benchmarks/results_250.json", "w") as f:
+    with open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "results_250.json"), "w") as f:
         json.dump(output, f, indent=2, default=str)
     print(f"\n  Saved to benchmarks/results_250.json")
 

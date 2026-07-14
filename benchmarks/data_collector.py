@@ -24,8 +24,8 @@ from pathlib import Path
 
 
 BENCHMARK_LOG_DIR = Path(os.environ.get(
-    "QMG_BENCHMARK_LOG", 
-    "/home/dt/.hermes/profiles/dk/quantum-tracker/benchmarks"
+    "QMG_BENCHMARK_LOG",
+    Path.home() / ".local" / "share" / "qmg" / "benchmarks",
 ))
 
 

@@ -6,6 +6,7 @@ DK 🦍
 """
 
 import json
+from pathlib import Path
 import random
 import hashlib
 from typing import List, Dict, Tuple
@@ -344,7 +345,7 @@ def generate_all_scenarios(count: int = 250, seed: int = 42) -> List[Dict]:
 if __name__ == "__main__":
     scenarios = generate_all_scenarios(250)
     
-    output_path = "/home/dt/Projects/quantum-memory-graph/benchmarks/memcombine_250.json"
+    output_path = Path(__file__).with_name("memcombine_250.json")
     with open(output_path, "w") as f:
         json.dump(scenarios, f, indent=2)
     

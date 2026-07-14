@@ -13,8 +13,8 @@ import json, time, math, sys, os, argparse, csv
 from datetime import datetime, timezone
 import numpy as np
 
-DATA_PATH = "/home/dt/projects-shared/LongMemEval/data/longmemeval_s_cleaned.json"
-RESULTS_DIR = "/home/dt/qmg-v1/benchmarks"
+DATA_PATH = os.environ.get("LONGMEMEVAL_DATA_PATH", "longmemeval_s_cleaned.json")
+RESULTS_DIR = os.environ.get("QMG_BENCHMARK_RESULTS_DIR", os.path.dirname(os.path.abspath(__file__)))
 RESULTS_FILE = os.path.join(RESULTS_DIR, "longmemeval_staged_results.json")
 CSV_FILE = os.path.join(RESULTS_DIR, "longmemeval_staged_results.csv")
 
@@ -137,7 +137,7 @@ def main():
         # --- Stage 2: QAOA+CVaR refinement on top candidates ---
         try:
             t0 = time.time()
-            sys.path.insert(0, "/home/dt/qmg-v1")
+            sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
             from quantum_memory_graph.subgraph_optimizer import optimize_subgraph
 
             # Take candidates from cosine top-N

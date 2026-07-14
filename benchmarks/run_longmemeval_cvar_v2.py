@@ -16,8 +16,8 @@ import json, time, math, sys, os, argparse, csv
 from datetime import datetime, timezone
 import numpy as np
 
-DATA_PATH = "/home/dt/projects-shared/LongMemEval/data/longmemeval_s_cleaned.json"
-RESULTS_DIR = "/home/dt/qmg-v1/benchmarks"
+DATA_PATH = os.environ.get("LONGMEMEVAL_DATA_PATH", "longmemeval_s_cleaned.json")
+RESULTS_DIR = os.environ.get("QMG_BENCHMARK_RESULTS_DIR", os.path.dirname(os.path.abspath(__file__)))
 RESULTS_FILE = os.path.join(RESULTS_DIR, "longmemeval_cvar_results.json")
 CSV_FILE = os.path.join(RESULTS_DIR, "longmemeval_cvar_results.csv")
 
@@ -132,7 +132,7 @@ def main():
         if not args.fast:
             t0 = time.time()
             try:
-                sys.path.insert(0, "/home/dt/qmg-v1")
+                sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
                 from quantum_memory_graph.subgraph_optimizer import optimize_subgraph
 
                 # Build adjacency from session embeddings (cosine similarity matrix)
