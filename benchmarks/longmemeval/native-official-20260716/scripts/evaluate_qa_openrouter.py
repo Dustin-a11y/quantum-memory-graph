@@ -15,7 +15,8 @@ Key differences from official evaluate_qa.py:
 - Rich per-item metadata: raw response, token usage, cost, hashes
 
 CREDENTIAL SAFETY: The API key is loaded from the env file at runtime and
-NEVER echoed, logged, or stored. Only the key prefix is printed for audit.
+NEVER echoed, logged, or stored — not even a prefix. No portion of the key
+ever appears on stdout, stderr, or any output artifact.
 
 Usage:
     python3 evaluate_qa_openrouter.py \
@@ -51,7 +52,7 @@ from evaluate_qa import get_anscheck_prompt  # type: ignore[import]
 # ── Constants ────────────────────────────────────────────────────────
 JUDGE_MODEL = "openai/gpt-4o"
 OFFICIAL_COMMIT = "9e0b455"  # Update me if the official repo moves
-CRED_FILE = Path("./benchd-openrouter.env")  # Override with --cred-file or env var
+CRED_FILE = Path("./benchd-openrouter.env")  # --cred-file
 
 # OpenRouter pricing (per 1M tokens, as of July 2025)
 # GPT-4o via OpenRouter: $2.50/M input, $10.00/M output
@@ -185,19 +186,22 @@ def run_evaluation(
     hyp_file: Path,
     ref_file: Path,
     out_dir: Path,
+    cred_file: Path | None = None,
 ) -> dict:
     """Run evaluation on all hypothesis items, return summary dict."""
     out_dir.mkdir(parents=True, exist_ok=True)
+
+    # Resolve credential file
+    _cred_file = cred_file if cred_file is not None else CRED_FILE
 
     # Compute hashes
     hyp_hash = file_sha256(hyp_file)
     ref_hash = file_sha256(ref_file)
 
     # Load creds
-    base_url, api_key = load_creds(CRED_FILE)
-    key_prefix = api_key[:12] + "..."
+    base_url, api_key = load_creds(_cred_file)
     print(f"[setup] OpenRouter base: {base_url}")
-    print(f"[setup] API key prefix: {key_prefix}")
+    print(f"[setup] Credentials loaded.")
     print(f"[setup] Judge model: {JUDGE_MODEL}")
     print(f"[setup] Official commit: {OFFICIAL_COMMIT}")
 
@@ -403,6 +407,12 @@ def main():
         action="store_true",
         help="Validate setup without making API calls",
     )
+    parser.add_argument(
+        "--cred-file",
+        type=Path,
+        default=CRED_FILE,
+        help=f"Path to credential env file (default: {CRED_FILE})",
+    )
     args = parser.parse_args()
 
     hyp_file = Path(args.hyp_file)
@@ -418,9 +428,9 @@ def main():
 
     if args.dry_run:
         print("[dry-run] Validating setup...")
-        base_url, api_key = load_creds(CRED_FILE)
+        base_url, api_key = load_creds(args.cred_file)
         print(f"[dry-run] OpenRouter base: {base_url}")
-        print(f"[dry-run] API key prefix: {api_key[:12]}...")
+        print(f"[dry-run] Credentials loaded.")
         print(f"[dry-run] Judge model: {JUDGE_MODEL}")
 
         hypotheses = [
@@ -449,7 +459,7 @@ def main():
         print("\n[dry-run] Setup OK. Remove --dry-run to execute.")
         return
 
-    run_evaluation(hyp_file, ref_file, out_dir)
+    run_evaluation(hyp_file, ref_file, out_dir, cred_file=args.cred_file)
 
 
 if __name__ == "__main__":

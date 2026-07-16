@@ -19,8 +19,8 @@ import unittest
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
-# Add the eval-wrapper to path
-sys.path.insert(0, str(Path(__file__).resolve().parent))
+# Add scripts directory to path for evaluate_qa_openrouter module
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "scripts"))
 
 from evaluate_qa_openrouter import (
     get_anscheck_prompt,
@@ -375,6 +375,147 @@ class TestHashing(unittest.TestCase):
         self.assertNotEqual(h1, h2)
         os.unlink(f1.name)
         os.unlink(f2.name)
+
+
+class TestCredentialSafety(unittest.TestCase):
+    """Verify API key NEVER leaks to stdout, stderr, or any output artifact."""
+
+    def test_load_creds_returns_key_but_never_prints(self):
+        """load_creds must not print any portion of the API key."""
+        import io
+        import tempfile
+        from contextlib import redirect_stdout
+
+        from evaluate_qa_openrouter import load_creds
+
+        with tempfile.NamedTemporaryFile(
+            mode="w", delete=False, suffix=".env"
+        ) as f:
+            f.write("BENCHD_API_BASE=https://openrouter.ai/api/v1\n")
+            f.write("OPENROUTER_API_KEY=sk-or-v1-abcd1234efgh5678ijkl\n")
+            f.flush()
+            env_path = f.name
+
+        try:
+            buf = io.StringIO()
+            with redirect_stdout(buf):
+                base_url, api_key = load_creds(Path(env_path))
+            output = buf.getvalue()
+            # Must NOT contain any substring of the key
+            self.assertNotIn("sk-or-v1", output)
+            self.assertNotIn("abcd1234", output)
+            self.assertNotIn("efgh5678", output)
+            self.assertNotIn("ijkl", output)
+            # Must NOT contain the full key
+            self.assertNotIn("sk-or-v1-abcd1234efgh5678ijkl", output)
+            # Must return the key correctly
+            self.assertEqual(api_key, "sk-or-v1-abcd1234efgh5678ijkl")
+            self.assertEqual(base_url, "https://openrouter.ai/api/v1")
+        finally:
+            os.unlink(env_path)
+
+    def test_dry_run_stdout_no_key_substring(self):
+        """--dry-run must never print any portion of the API key."""
+        import io
+        import json
+        import tempfile
+        from contextlib import redirect_stdout
+
+        # Create a minimal hypothesis file
+        hyp_content = json.dumps({
+            "question_id": "test_q1",
+            "hypothesis": "test hypothesis",
+        }) + "\n"
+
+        with tempfile.NamedTemporaryFile(
+            mode="w", delete=False, suffix=".jsonl"
+        ) as hf:
+            hf.write(hyp_content)
+            hf.flush()
+            hyp_path = hf.name
+
+        # Create a minimal reference file
+        ref_content = json.dumps([{
+            "question_id": "test_q1",
+            "question": "What is test?",
+            "answer": "test",
+            "question_type": "single-session-user",
+        }])
+
+        with tempfile.NamedTemporaryFile(
+            mode="w", delete=False, suffix=".json"
+        ) as rf:
+            rf.write(ref_content)
+            rf.flush()
+            ref_path = rf.name
+
+        # Create a credential file with fake key
+        fake_key = "sk-or-v1-zyxw9876fedcba5432mnop"
+        with tempfile.NamedTemporaryFile(
+            mode="w", delete=False, suffix=".env"
+        ) as cf:
+            cf.write(f"BENCHD_API_BASE=https://openrouter.ai/api/v1\n")
+            cf.write(f"OPENROUTER_API_KEY={fake_key}\n")
+            cf.flush()
+            cred_path = cf.name
+
+        try:
+            import subprocess
+
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    "-m",
+                    "scripts.evaluate_qa_openrouter",
+                    "--hyp-file", hyp_path,
+                    "--ref-file", ref_path,
+                    "--dry-run",
+                    "--cred-file", cred_path,
+                ],
+                capture_output=True,
+                text=True,
+                cwd=str(Path(__file__).resolve().parent.parent),
+            )
+            stdout = result.stdout
+            stderr = result.stderr
+            combined = stdout + stderr
+
+            # NEVER contain any substring of the fake key
+            for substr in [
+                "zyxw9876", "fedcba", "sk-or-v1-zyxw", "5432mnop",
+                fake_key,
+            ]:
+                self.assertNotIn(
+                    substr, combined,
+                    f"CREDENTIAL LEAK: '{substr}' found in output"
+                )
+
+            # The "sk-or-v1" prefix alone (without actual key chars)
+            # should also not appear since we're printing "loaded (N chars)"
+            # instead of any key content
+            # Actually, let's check that the full prefix isn't printed
+            # by checking output doesn't have key-like pattern
+            import re
+            self.assertFalse(
+                re.search(r'sk-or-v1-[a-z0-9]{8,}', combined),
+                "CREDENTIAL LEAK: key-like pattern found in output"
+            )
+
+            # Verify it ran successfully
+            self.assertIn("[dry-run] Setup OK", stdout)
+            self.assertIn("Credentials loaded.", stdout)
+            # Key length must NOT appear in output
+            self.assertNotIn(str(len(fake_key)), stdout, "KEY LENGTH LEAK: key length in stdout")
+            self.assertNotIn(str(len(fake_key)), stderr, "KEY LENGTH LEAK: key length in stderr")
+            # Key prefix 'sk-' must NOT appear (we don't even reveal prefix)
+            self.assertNotIn("sk-or-", stdout, "KEY PREFIX LEAK in stdout")
+            self.assertNotIn("sk-or-", stderr, "KEY PREFIX LEAK in stderr")
+        finally:
+            for p in [hyp_path, ref_path, cred_path]:
+                try:
+                    os.unlink(p)
+                except OSError:
+                    pass
 
 
 if __name__ == "__main__":

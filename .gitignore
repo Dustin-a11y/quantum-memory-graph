@@ -17,3 +17,4 @@ htmlcov/
 *.token
 *.key
 palace/
+benchd-openrouter.env

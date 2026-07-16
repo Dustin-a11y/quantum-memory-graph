@@ -82,14 +82,36 @@ All commands are run from this directory (`benchmarks/longmemeval/native-officia
    cd ..
    ```
 
-2. Run retrieval (requires QMG v1.3+):
+2. Download the official cleaned LongMemEval dataset:
+   ```bash
+   mkdir -p LongMemEval/data
+   curl -L -o LongMemEval/data/longmemeval_s_cleaned.json \
+     https://huggingface.co/datasets/xiaowu0162/longmemeval-cleaned/resolve/main/longmemeval_s_cleaned.json
+   ```
+
+   Verify SHA-256:
+   ```bash
+   echo "d6f21ea9d60a0d56f34a05b609c79c88a451d2ae03597821ea3d5a9678c3a442  LongMemEval/data/longmemeval_s_cleaned.json" | sha256sum -c
+   ```
+
+3. Create credential file (see `benchd-openrouter.env.example` for template):
+   ```bash
+   cp benchd-openrouter.env.example benchd-openrouter.env
+   # Edit benchd-openrouter.env with your OpenRouter API key
+   ```
+
+   **Note on credential mechanism:** All scripts (`run_generation_openrouter.py`, `run_generation_repair.py`, `evaluate_qa_openrouter.py`) accept `--cred-file` as a CLI argument (default: `./benchd-openrouter.env`).
+
+4. Run retrieval (reproduces QMG v1.3 published retrieval method):
    ```bash
    python scripts/qmg_chunked_hybrid_runner.py \
      --in-file LongMemEval/data/longmemeval_s_cleaned.json \
      --out-file results/retrieval.jsonl
    ```
 
-3. Run generation (requires OpenRouter API key via `--cred-file`):
+   The runner is a self-contained script that does not import `quantum_memory_graph`; it reimplements the published QMG v1.3 chunked BM25 hybrid algorithm using sentence-transformers, numpy, and rank_bm25 for a clean-room reproduction path.
+
+5. Run generation (requires OpenRouter API key via `--cred-file`):
    ```bash
    python scripts/run_generation_openrouter.py \
      --in-file results/retrieval.jsonl \
@@ -97,12 +119,22 @@ All commands are run from this directory (`benchmarks/longmemeval/native-officia
      --cred-file ./benchd-openrouter.env
    ```
 
-4. Run evaluation (requires OpenRouter API key; ensure `./benchd-openrouter.env` is present):
+6. Run evaluation (requires OpenRouter API key; uses `--cred-file` for credential path):
    ```bash
    python scripts/evaluate_qa_openrouter.py \
      --hyp-file results/hypotheses_merged_500.jsonl \
      --ref-file LongMemEval/data/longmemeval_s_cleaned.json \
-     --out-dir results/
+     --out-dir results/ \
+     --cred-file ./benchd-openrouter.env
+   ```
+
+   Dry-run to validate setup without API calls:
+   ```bash
+   python scripts/evaluate_qa_openrouter.py \
+     --hyp-file results/hypotheses_merged_500.jsonl \
+     --ref-file LongMemEval/data/longmemeval_s_cleaned.json \
+     --dry-run \
+     --cred-file ./benchd-openrouter.env
    ```
 
 ## Tests
