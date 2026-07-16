@@ -68,20 +68,28 @@ Self-run evaluation of QMG v1.3 (chunked BM25 hybrid retrieval) on the official 
 
 ## Reproducing
 
+All commands are run from this directory (`benchmarks/longmemeval/native-official-20260716`).
+
+0. Install dependencies:
+   ```bash
+   pip install sentence-transformers torch numpy rank_bm25 openai tiktoken backoff
+   ```
+
 1. Clone the official LongMemEval repo:
    ```bash
    git clone https://github.com/xiaowu0162/LongMemEval.git
    cd LongMemEval && git checkout 9e0b455f4ef0e2ab8f2e582289761153549043fc
+   cd ..
    ```
 
 2. Run retrieval (requires QMG v1.3+):
    ```bash
    python scripts/qmg_chunked_hybrid_runner.py \
-     --dataset LongMemEval/data/longmemeval_s_cleaned.json \
-     --output results/retrieval.jsonl
+     --in-file LongMemEval/data/longmemeval_s_cleaned.json \
+     --out-file results/retrieval.jsonl
    ```
 
-3. Run generation (requires OpenRouter API key):
+3. Run generation (requires OpenRouter API key via `--cred-file`):
    ```bash
    python scripts/run_generation_openrouter.py \
      --in-file results/retrieval.jsonl \
@@ -89,10 +97,11 @@ Self-run evaluation of QMG v1.3 (chunked BM25 hybrid retrieval) on the official 
      --cred-file ./benchd-openrouter.env
    ```
 
-4. Run evaluation (requires OpenRouter API key):
+4. Run evaluation (requires OpenRouter API key; ensure `./benchd-openrouter.env` is present):
    ```bash
    python scripts/evaluate_qa_openrouter.py \
-     --hypothesis-file results/hypotheses_merged_500.jsonl \
+     --hyp-file results/hypotheses_merged_500.jsonl \
+     --ref-file LongMemEval/data/longmemeval_s_cleaned.json \
      --out-dir results/
    ```
 
