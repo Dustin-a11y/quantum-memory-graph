@@ -1,0 +1,8 @@
+# Gitleaks configuration for Quantum Memory Graph
+# Suppress false positives from synthetic test keys in benchmark fixtures
+
+[allowlist]
+  description = "Synthetic test keys in LongMemEval benchmark test fixtures"
+  paths = [
+    "benchmarks/longmemeval/native-official-20260716/tests/test_evaluate_qa_openrouter.py",
+  ]
