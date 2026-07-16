@@ -1,0 +1,44 @@
+{
+  "total_items": 500,
+  "correct": 428,
+  "incorrect": 72,
+  "errors": 0,
+  "accuracy": 0.856,
+  "by_question_type": {
+    "single-session-user": {
+      "accuracy": 0.9857,
+      "count": 70
+    },
+    "multi-session": {
+      "accuracy": 0.782,
+      "count": 133
+    },
+    "single-session-preference": {
+      "accuracy": 0.8,
+      "count": 30
+    },
+    "temporal-reasoning": {
+      "accuracy": 0.8195,
+      "count": 133
+    },
+    "knowledge-update": {
+      "accuracy": 0.8718,
+      "count": 78
+    },
+    "single-session-assistant": {
+      "accuracy": 0.9643,
+      "count": 56
+    }
+  },
+  "token_usage": {
+    "total_input_tokens": 214726,
+    "total_output_tokens": 1070,
+    "total_tokens": 215796
+  },
+  "total_cost_usd": 0.547515,
+  "judge_model": "openai/gpt-4o",
+  "official_commit": "9e0b455",
+  "hypothesis_file_hash": "a4c5aea53fa484055120c89d5e06dfe35cbfa43c125417c668c62d955c86420d",
+  "reference_file_hash": "d6f21ea9d60a0d56f34a05b609c79c88a451d2ae03597821ea3d5a9678c3a442",
+  "evaluated_at": "2026-07-16T07:58:51.607947+00:00"
+}

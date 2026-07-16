@@ -41,6 +41,37 @@ Tested on the official [LongMemEval benchmark](https://arxiv.org/abs/2410.10813)
 
 **See:** `benchmarks/run_longmemeval_chunked_staged.py` and `benchmarks/run_longmemeval_hybrid.py` for exact benchmark code. `benchmarks/longmemeval_bm25_hybrid_results.json` for full per-question results.
 
+**⚠️ Metric note:** The retrieval benchmarks above use `recall_any` (whether at least one answer session appears in the top-K). The official `evaluate_qa.py` strict parser uses `recall_all` which is a stricter metric — see the end-to-end QA section below.
+
+## 🤖 Native End-to-End QA — 85.6% (Official Pipeline)
+
+In addition to retrieval-only benchmarks, QMG has been evaluated end-to-end on the official LongMemEval pipeline: retrieval → hypothesis generation → GPT-4o judge. **This is a self-run evaluation on the official dataset and codebase — not authored or verified by the LongMemEval maintainers.**
+
+| Metric | Value |
+|--------|:-----:|
+| **Overall QA Accuracy** | **85.6%** (428/500) |
+| Generation model | DeepSeek R1 (OpenRouter) |
+| Judge | GPT-4o (OpenRouter) |
+| Judge cost | $0.55 |
+| Errors | 0 |
+
+**By question type:**
+
+| Type | Accuracy | Items |
+|------|:--------:|:-----:|
+| single-session-user | 98.57% | 70 |
+| single-session-assistant | 96.43% | 56 |
+| knowledge-update | 87.18% | 78 |
+| temporal-reasoning | 81.95% | 133 |
+| single-session-preference | 80.00% | 30 |
+| multi-session | 78.20% | 133 |
+
+**Retrieval metrics (official strict parser, recall_all):** recall_all@5 0.8723, ndcg_any@5 0.8993, recall_all@10 0.9511, ndcg_any@10 0.9176.
+
+**Full artifacts** including hypotheses, per-item eval results, scripts, tests, and provenance: [`benchmarks/longmemeval/native-official-20260716/`](./benchmarks/longmemeval/native-official-20260716/PROVENANCE.md)
+
+**Separate from Bench'd.ai:** The Bench'd.ai score (86.2) uses a different harness. This native run uses the exact official LongMemEval repository, `prepare_prompt`, and `get_anscheck_prompt` with zero modifications. See the [official issue #46](https://github.com/xiaowu0162/LongMemEval/issues/46) for the submission record.
+
 ## Install
 
 ```bash
