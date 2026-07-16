@@ -213,6 +213,19 @@ Validated on `ibm_fez` and `ibm_kingston` backends.
 
 MIT License — Copyright 2026 Coinkong (Chef's Attraction)
 
+## Community Integrations
+
+### Hermes Agent — QMG Memory Provider
+
+[`smoke-ui/hermes-qmg`](https://github.com/smoke-ui/hermes-qmg) (v2.0.0) — A community-maintained [Hermes Agent](https://github.com/nousresearch/hermes-agent) memory provider that integrates QMG as a backend for the Hermes MemoryProvider API, using graph recall + QAOA subgraph selection for relationship-aware agent memory.
+
+- **Install:** `hermes plugin install smoke-ui/hermes-qmg`
+- **Status:** Independently audited — 35/35 tests passing, ruff-clean, PyPI dependency hash verified
+- **Maintainer:** Community-maintained, independently developed — not affiliated with the QMG project or Nous Research
+- **⚠️ Inspect before running** — This is a community plugin; review the code before installing. No official endorsement by the QMG project or Nous Research.
+
+> A [collaboration issue](https://github.com/smoke-ui/hermes-qmg/issues/1) is open to coordinate future development between the plugin and QMG.
+
 ## Links
 
 - [GitHub](https://github.com/Dustin-a11y/quantum-memory-graph) — Source code and benchmarks
