@@ -62,6 +62,8 @@ jobs:
           PATTERNS=(
             'sk-or-v1-[A-Za-z0-9]{32,}'
             'sk-[A-Za-z0-9]{32,}'
+            'OPENROUTER_API_KEY\s*=\s*sk-or-v1-[A-Za-z0-9]{32,}'
+            'OPENROUTER_API_KEY\s*=\s*sk-[A-Za-z0-9]{32,}'
             '-----BEGIN (RSA|EC|DSA|OPENSSH) PRIVATE KEY-----'
             'ghp_[A-Za-z0-9]{36}'
             'gho_[A-Za-z0-9]{36}'
