@@ -70,7 +70,32 @@ In addition to retrieval-only benchmarks, QMG has been evaluated end-to-end on t
 
 **Full artifacts** including hypotheses, per-item eval results, scripts, tests, and provenance: [`benchmarks/longmemeval/native-official-20260716/`](./benchmarks/longmemeval/native-official-20260716/PROVENANCE.md)
 
-**Separate from Bench'd.ai:** The Bench'd.ai score (86.2) uses a different harness. This native run uses the exact official LongMemEval repository, `prepare_prompt`, and `get_anscheck_prompt` with zero modifications. See the [official issue #46](https://github.com/xiaowu0162/LongMemEval/issues/46) for the submission record.
+**Separate from Bench'd:** The Bench'd harness score (86.2% trace accuracy, 85.67 nuance) is a separate evaluation using a different harness with its own adapter, judge pipeline, and scoring logic. See [`benchmarks/longmemeval/benchd-run-e375a77f15fb/`](./benchmarks/longmemeval/benchd-run-e375a77f15fb/PROVENANCE.md) for the signed proof package.
+
+## 🔬 Bench'd Harness Evaluation — 86.2% Trace Accuracy
+
+In addition to retrieval-only and native end-to-end benchmarks, QMG has been evaluated on the Bench'd harness against LongMemEval. **This is a self-run Bench'd harness artifact — not official leaderboard verification and not quantum-derived.**
+
+| Metric | Value |
+|--------|:-----:|
+| **Trace accuracy** | **86.2%** (431/500) |
+| Nuance overall (weighted) | 85.67 |
+| Answerer model | DeepSeek R1 |
+| Judge | GPT-4o (temperature 0.0) |
+| Mean latency | 9,642 ms |
+| Scoring method | LLM (classical subgraph selection) |
+
+**⚠️ Score disambiguation:** The Bench'd harness reports two distinct scores that must not be conflated:
+- **Trace accuracy (86.2%):** Pass/fail count from the harness CLI trace — 431 correct / 500 total. This is the headline harness number.
+- **Nuance overall (85.67):** A separate weighted metric across recall, temporal, and reasoning dimensions from the manifest's `scores.nuance` field.
+
+**Provenance note:** The signed manifest contains no optimizer execution telemetry — no QAOA-eligible count is attested. All 500 traces use classical LLM scoring. See [PROVENANCE.md](./benchmarks/longmemeval/benchd-run-e375a77f15fb/PROVENANCE.md#provenance-note-quantum-contribution) for details.
+
+**Full signed proof package:** [`benchmarks/longmemeval/benchd-run-e375a77f15fb/`](./benchmarks/longmemeval/benchd-run-e375a77f15fb/PROVENANCE.md) — includes:
+- Cryptographically signed manifest (30 MB, Ed25519) with 500 traces
+- Lightweight summary JSON
+- Deterministic validator that verifies manifest hash, Ed25519 signature, and score integrity
+- 18 automated tests (all passing) covering file integrity, cryptographic verification, score accuracy, QAOA eligibility, and secret/path scanning
 
 ## Install
 
