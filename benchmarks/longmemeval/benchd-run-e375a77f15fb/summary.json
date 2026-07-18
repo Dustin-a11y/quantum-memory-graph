@@ -1,0 +1,74 @@
+{
+  "run_id": "run_e375a77f15fb",
+  "system": {
+    "name": "qmg",
+    "adapter": "qmg",
+    "version": "1.4.0"
+  },
+  "benchmark": {
+    "slug": "longmemeval-v1",
+    "name": "LongMemEval",
+    "version": "1.0"
+  },
+  "harness": {
+    "name": "Bench'd",
+    "version": "0.1.0"
+  },
+  "judge": {
+    "answerer_model": "deepseek/deepseek-r1",
+    "judge_model": "openai/gpt-4o",
+    "temperature": 0.0
+  },
+  "started_at": "2026-07-14T23:33:14.881206+00:00",
+  "completed_at": "2026-07-15T03:10:40.688748+00:00",
+  "scores": {
+    "_disclaimer": "nuance scores are distinct from trace accuracy (431/500 = 86.2%). Do not conflate the two metrics.",
+    "trace_accuracy": {
+      "passed": 431,
+      "failed": 69,
+      "total": 500,
+      "pct": 86.2
+    },
+    "nuance": {
+      "recall": 87.17948717948718,
+      "temporal": 88.62559241706161,
+      "reasoning": 81.203007518797,
+      "overall": 85.66936237178193
+    }
+  },
+  "summary": {
+    "total_questions": 500,
+    "scored_questions": 500,
+    "pending_questions": 0,
+    "passed": 431,
+    "failed": 69
+  },
+  "efficiency": {
+    "mean_latency_ms": 9642.62,
+    "median_latency_ms": 9202.6,
+    "p95_latency_ms": 13163.68,
+    "total_recall_tokens": 2843090
+  },
+  "retrieval": {
+    "recall_at_k": 47.4,
+    "partial_recall": 68.4,
+    "k": 5,
+    "total_hits": 237,
+    "partial_hits": 342
+  },
+  "faithfulness": {
+    "grounded_pct": 32.6,
+    "abstention_pct": 9.8,
+    "grounded_count": 163,
+    "abstained_count": 49
+  },
+  "cryptographic": {
+    "manifest_hash": "c8e6d9cb4026f017e421c56be6cabda1a1d4958f0a4def2557b4150fdd02ef16",
+    "signature": "6ebbde1ac3b8a38e7be328bbe31e7b499433d80540988db687d29322f4dabc5320653d04b3e177a1f645fc3374c09cf5365bb1f8b627ca48947f58fbead85f04",
+    "public_key": "483b133c089ac3ff5fbb3c6df75923ac3874d550e3997ff6c617572a5aa5a830",
+    "signing_key_fingerprint": "23442739ed37e98f",
+    "signed_at": "2026-07-15T03:10:40.865996+00:00",
+    "signing_mode": "local"
+  },
+  "file_sha256": "01a1b981e4652598976b7f32ac9e5a4f5261df3585b72c27977ea4a26a29be82"
+}
