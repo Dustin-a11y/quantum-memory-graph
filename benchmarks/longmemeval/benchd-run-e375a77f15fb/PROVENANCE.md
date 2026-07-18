@@ -4,7 +4,7 @@
 
 Self-run evaluation of QMG v1.4.0 on the Bench'd harness against the LongMemEval benchmark (ICLR 2025). **This is a self-run Bench'd harness artifact, not official leaderboard verification and not quantum-derived.**
 
-**Trace accuracy: 86.2% (431/500)** | Nuance score: 85.67 | Classical-dominant (QAOA eligible only 3/500)
+**Trace accuracy: 86.2% (431/500)** | Nuance score: 85.67 | Classical pipeline (see provenance note)
 
 ## ⚠️ Score Distinction
 
@@ -85,13 +85,31 @@ The manifest is cryptographically signed with Ed25519. The signing scheme signs 
 | **Signing mode** | local |
 | **File SHA-256** | `01a1b981e4652598976b7f32ac9e5a4f5261df3585b72c27977ea4a26a29be82` |
 
+## Provenance Note: Quantum Contribution
+
+**The signed manifest contains no optimizer execution telemetry** — no trace-level `metadata.qaoa_eligible` field, no `scoring_method: "qaoa"` entries, and no manifest-level QAOA count. All 500 traces use `scoring_method: "llm"` (classical subgraph selection). The manifest therefore **cannot establish any quantum contribution** to these scores.
+
+A separate code-path audit confirms the QMG pipeline includes QAOA subgraph optimization at the framework level, but whether any optimizer was invoked during this specific run is outside what the signed proof can verify. The published claim of "classical-dominant" is consistent with the manifest contents (all 500 traces are LLM-scored).
+
+**Do not cite any specific QAOA-eligible count for this run** — no count is attested by the signed manifest. The manifest proves scores and signature integrity only; it does not contain optimizer execution telemetry.
+
 ## Disclosure
 
 - **Self-run:** This evaluation was run independently using the Bench'd harness CLI. It has NOT been authored, verified, or endorsed by the Bench'd.ai maintainers and does NOT appear on any official leaderboard.
-- **Classical-dominant:** QAOA was eligible on only 3 of 500 questions (0.6%). The remaining 497 ran with classical subgraph selection. This is a classical retrieval pipeline with quantum-eligible optimization paths, not a quantum-derived result.
-- **Not quantum-derived:** The 86.2% result is achieved through the classical retrieval pipeline (BM25 hybrid + chunked embeddings + subgraph selection). QAOA eligibility does not materially affect the score.
+- **Not quantum-derived:** The 86.2% result is achieved through the classical retrieval pipeline (BM25 hybrid + chunked embeddings + subgraph selection).
 - **Separate from native official run:** The `native-official-20260716/` directory contains a separate evaluation (85.6%) using the official LongMemEval repository directly. This Bench'd run uses the Bench'd harness, which wraps the benchmark with its own adapter, judge pipeline, and scoring logic.
 - **Credentials:** No API keys, tokens, or secrets are included in any published artifact. The signed manifest contains only benchmark data, traces, and cryptographic signatures.
+
+## Manifest Data & Reproducibility
+
+The `manifest.signed.json` (30 MB) contains the full benchmark dataset from the LongMemEval benchmark (MIT-licensed), including:
+
+- All 500 question texts and expected answers
+- Full synthetic conversation histories (ingest_history with timestamps)
+- Generated answers and LLM judge reasoning
+- Per-trace scoring, retrieval, and faithfulness metrics
+
+This data is published for **reproducibility** under the applicable LongMemEval dataset terms (MIT license). **Do not use the expected answers or judge reasoning labels for model tuning** — doing so would compromise benchmark integrity for any future evaluation.
 
 ## Artifacts
 

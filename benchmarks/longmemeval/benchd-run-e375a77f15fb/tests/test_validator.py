@@ -136,8 +136,9 @@ class TestScores:
 
 
 class TestQAOAEligibility:
-    def test_qaoa_eligible_is_small_fraction(self, manifest_data):
-        """QAOA eligible on only a tiny fraction — result is classical-dominant."""
+    def test_qaoa_eligible_is_zero_in_signed_manifest(self, manifest_data):
+        """The signed manifest contains no optimizer execution telemetry.
+        All traces use classical LLM scoring. Zero QAOA is expected and verified."""
         traces = manifest_data["manifest"]["traces"]
         qaoa_count = sum(
             1 for t in traces
@@ -147,11 +148,9 @@ class TestQAOAEligibility:
         # Also check manifest-level count
         if qaoa_count == 0:
             qaoa_count = manifest_data["manifest"].get("scores", {}).get("qaoa_eligible_count", 0)
-        total = len(traces)
-        pct = qaoa_count / total * 100
-        # Should be ≤ 5% — stated as 3/500 = 0.6%
-        assert pct <= 5.0, \
-            f"QAOA eligible {qaoa_count}/{total} = {pct:.1f}% — too high for classical-dominant claim"
+        # Zero is the honest attested value — manifest has no optimizer telemetry
+        assert qaoa_count == 0, \
+            f"Expected 0 QAOA-eligible traces (manifest lacks optimizer telemetry), got {qaoa_count}"
 
 
 class TestValidatorEndToEnd:
@@ -184,9 +183,33 @@ class TestNoSecrets:
             assert not re.search(pattern, content), \
                 f"Potential secret found matching {pattern}"
 
+    def test_no_secrets_in_full_manifest(self, manifest_data):
+        """Scan the full 30MB manifest for API keys, tokens, and credential patterns."""
+        import re
+        import json
+        manifest_path = Path(__file__).resolve().parent.parent / "manifest.signed.json"
+        with open(manifest_path) as f:
+            raw = f.read()
+
+        patterns = [
+            (r'sk-or-v1-[A-Za-z0-9]{32,}',      "OpenRouter API key"),
+            (r'sk-[A-Za-z0-9-]{36,}',             "generic sk- key (OpenAI/OpenRouter)"),
+            (r'AIza[0-9A-Za-z\-_]{35}',           "Google API key"),
+            (r'ghp_[a-zA-Z0-9]{36}',              "GitHub classic token"),
+            (r'gho_[a-zA-Z0-9]{36}',              "GitHub OAuth token"),
+            (r'github_pat_[A-Za-z0-9_]{36,}',     "GitHub fine-grained token"),
+            (r'-----BEGIN (RSA|EC|DSA|OPENSSH) PRIVATE KEY-----', "private key"),
+            (r'xai-[a-zA-Z0-9]{20,}',             "xAI API key"),
+            (r'Bearer [A-Za-z0-9\-_\.]{20,}',     "Bearer token"),
+        ]
+        for pattern, label in patterns:
+            matches = re.findall(pattern, raw)
+            assert len(matches) == 0, \
+                f"Found {len(matches)} potential {label}(s) in full manifest"
+
     def test_no_home_paths_in_artifacts(self):
         """Ensure no /home/dt paths leaked into committed artifacts."""
-        for fname in ["summary.json", "validator.py", "PROVENANCE.md"]:
+        for fname in ["summary.json", "validator.py", "PROVENANCE.md", "manifest.signed.json"]:
             fpath = str(Path(__file__).resolve().parent.parent / fname)
             with open(fpath) as f:
                 content = f.read()

@@ -178,7 +178,7 @@ def validate(manifest_path: str | None = None) -> dict:
         "eligible_count": qaoa_eligible,
         "total": total,
         "pct": round(qaoa_eligible / total * 100, 2) if total > 0 else 0,
-        "note": "QAOA eligible on only a small fraction; result is classical-dominant",
+        "note": "Signed manifest contains no optimizer execution telemetry; QAOA count is zero per signed evidence",
     }
 
     # Overall

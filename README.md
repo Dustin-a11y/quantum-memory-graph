@@ -83,13 +83,13 @@ In addition to retrieval-only and native end-to-end benchmarks, QMG has been eva
 | Answerer model | DeepSeek R1 |
 | Judge | GPT-4o (temperature 0.0) |
 | Mean latency | 9,642 ms |
-| QAOA eligible | 3/500 (0.6%) — classical-dominant |
+| Scoring method | LLM (classical subgraph selection) |
 
 **⚠️ Score disambiguation:** The Bench'd harness reports two distinct scores that must not be conflated:
 - **Trace accuracy (86.2%):** Pass/fail count from the harness CLI trace — 431 correct / 500 total. This is the headline harness number.
 - **Nuance overall (85.67):** A separate weighted metric across recall, temporal, and reasoning dimensions from the manifest's `scores.nuance` field.
 
-**Classical-dominant:** Only 3 of 500 questions were QAOA-eligible. The remaining 497 ran with classical subgraph selection. This is a classical retrieval pipeline result, not a quantum-derived claim.
+**Provenance note:** The signed manifest contains no optimizer execution telemetry — no QAOA-eligible count is attested. All 500 traces use classical LLM scoring. See [PROVENANCE.md](./benchmarks/longmemeval/benchd-run-e375a77f15fb/PROVENANCE.md#provenance-note-quantum-contribution) for details.
 
 **Full signed proof package:** [`benchmarks/longmemeval/benchd-run-e375a77f15fb/`](./benchmarks/longmemeval/benchd-run-e375a77f15fb/PROVENANCE.md) — includes:
 - Cryptographically signed manifest (30 MB, Ed25519) with 500 traces
