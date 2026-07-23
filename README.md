@@ -1,11 +1,12 @@
 # Quantum Memory Graph ⚛️🧠
 
+> **🦍 Kong Graph is the new home for classical retrieval.** 99.4% R@10, zero quantum hardware, `pip install kong-graph`. → [github.com/Dustin-a11y/kong-graph](https://github.com/Dustin-a11y/kong-graph)
+>
+> This repo continues for quantum optimization research (QAOA, PCE, IBM QPU backends).
+
 [![PyPI version](https://img.shields.io/pypi/v/quantum-memory-graph)](https://pypi.org/project/quantum-memory-graph/)
 [![PyPI downloads](https://img.shields.io/pypi/dm/quantum-memory-graph)](https://pypi.org/project/quantum-memory-graph/)
-[![LongMemEval](https://img.shields.io/badge/LongMemEval-%231-94.26%25_NDCG-brightgreen)](https://github.com/xiaowu0162/LongMemEval/issues/46)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Python 3.9+](https://img.shields.io/badge/python-3.9+-blue.svg)](https://www.python.org/downloads/)
-[![Docker](https://img.shields.io/badge/Docker-ghcr.io-blue)](https://github.com/users/Dustin-a11y/packages/container/package/quantum-memory-graph)
 
 **Relationship-aware memory for AI agents. Knowledge graphs + quantum-optimized subgraph selection.**
 
