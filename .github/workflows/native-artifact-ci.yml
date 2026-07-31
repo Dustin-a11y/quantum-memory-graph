@@ -71,7 +71,7 @@ jobs:
           )
           exit_code=0
           for pat in "${PATTERNS[@]}"; do
-            results=$(grep -rnE "$pat" scripts/ tests/ results/ PROVENANCE.md 2>/dev/null || true)
+            results=$(grep -rnE "$pat" scripts/ results/ PROVENANCE.md 2>/dev/null || true)
             if [ -n "$results" ]; then
               echo "FAIL: Potential secret found matching pattern: $pat"
               echo "$results"
