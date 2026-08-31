@@ -214,8 +214,8 @@ def chat():
             return jsonify({"error": f"Cannot connect to Ollama at {OLLAMA_HOST}. Is it running?"}), 502
         except requests.exceptions.Timeout:
             return jsonify({"error": "Ollama request timed out"}), 504
-        except requests.exceptions.RequestException as e:
-            return jsonify({"error": f"Ollama error: {str(e)}"}), 502
+        except requests.exceptions.RequestException:
+            return jsonify({"error": "Ollama request failed"}), 502
 
         def generate():
             full_response = ""
@@ -226,6 +226,7 @@ def chat():
                         chunk = json.loads(line.decode("utf-8"))
                         full_response += chunk.get("message", {}).get("content", "")
                     except (json.JSONDecodeError, UnicodeDecodeError):
+                        # Preserve the stream when an upstream chunk is malformed.
                         pass
             # Store after all chunks are sent
             if last_user and full_response:
@@ -246,8 +247,8 @@ def chat():
             return jsonify({"error": f"Cannot connect to Ollama at {OLLAMA_HOST}. Is it running?"}), 502
         except requests.exceptions.Timeout:
             return jsonify({"error": "Ollama request timed out"}), 504
-        except requests.exceptions.RequestException as e:
-            return jsonify({"error": f"Ollama error: {str(e)}"}), 502
+        except requests.exceptions.RequestException:
+            return jsonify({"error": "Ollama request failed"}), 502
 
         result = resp.json()
 
@@ -270,7 +271,8 @@ def health():
     try:
         r = requests.get(f"{OLLAMA_HOST}/", timeout=5)
         ollama_ok = r.status_code == 200
-    except Exception:
+    except requests.exceptions.RequestException:
+        # An unavailable upstream is represented by a false health result.
         pass
 
     return jsonify({
