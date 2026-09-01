@@ -12,7 +12,7 @@ Copyright 2026 Coinkong (Chef's Attraction). MIT License.
 
 import numpy as np
 from itertools import combinations
-from typing import List, Dict, Tuple, Optional
+from typing import Dict
 
 from qiskit import QuantumCircuit
 from qiskit_aer import AerSimulator
@@ -72,8 +72,7 @@ def optimize_subgraph(
     
     # QAOA optimization — wrapped in try/except since AerSimulator can
     # crash or hang on machines without CUDA-optimized qiskit-aer
-    qaoa_ok = False
-    qaoa_selection, qaoa_score = list(range(K)), 0.0
+    qaoa_result = None
     
     try:
         simulator = AerSimulator()
@@ -110,11 +109,12 @@ def optimize_subgraph(
                         best_cost = cost
                         best_bits = bits[:]
         
-        qaoa_selection = [i for i in range(n) if best_bits[i]]
-        qaoa_score = _evaluate_subgraph(
-            best_bits, rel_norm, adj_norm, alpha, beta_conn, gamma_cov
+        qaoa_result = (
+            [i for i in range(n) if best_bits[i]],
+            _evaluate_subgraph(
+                best_bits, rel_norm, adj_norm, alpha, beta_conn, gamma_cov
+            ),
         )
-        qaoa_ok = True
     except Exception as e:
         # QAOA simulator failed — will fall back to greedy below
         print(f"WARNING: QAOA simulator failed ({e}), falling back to greedy")
@@ -125,8 +125,8 @@ def optimize_subgraph(
     )
     
     # Use QAOA results if available, otherwise fall back to greedy
-    if qaoa_ok:
-        final_selection, final_score = qaoa_selection, qaoa_score
+    if qaoa_result is not None:
+        final_selection, final_score = qaoa_result
         method = "qaoa"
     else:
         final_selection, final_score = greedy_sel, greedy_score

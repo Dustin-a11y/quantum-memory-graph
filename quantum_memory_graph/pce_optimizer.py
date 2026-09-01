@@ -18,9 +18,8 @@ Copyright 2026 Coinkong (Chef's Attraction). MIT License.
 """
 
 import numpy as np
-from itertools import combinations, product
-from typing import List, Dict, Tuple, Optional
-from dataclasses import dataclass, field
+from itertools import combinations
+from typing import List, Dict, Tuple
 
 from qiskit import QuantumCircuit
 from qiskit_aer import AerSimulator
@@ -233,9 +232,6 @@ def optimize_subgraph_pce(
     rel_pce = pce_encode_scores(relevance_scores)
     adj_pce = pce_encode_adjacency(adjacency, encoding, n_qubits)
     
-    # Construct cost Hamiltonian from PCE encoding
-    cost_ham = build_pce_cost_hamiltonian(encoding, n_qubits)
-    
     # Normalize qubit-level scores
     rel_qubit = np.zeros(n_qubits)
     for idx, (_, qubits, _) in encoding.items():
@@ -252,7 +248,6 @@ def optimize_subgraph_pce(
     
     best_cost = -float('inf')
     best_bits = [0] * m
-    best_qubit_bits = [0] * n_qubits
     best_method_info = {}
     
     for g in gamma_vals:
@@ -287,7 +282,6 @@ def optimize_subgraph_pce(
                 if cost > best_cost:
                     best_cost = cost
                     best_bits = selected[:]
-                    best_qubit_bits = qubit_bits[:]
                     best_method_info = {
                         "gamma": float(g),
                         "beta": float(b),

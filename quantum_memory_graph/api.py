@@ -7,7 +7,6 @@ Copyright 2026 Coinkong (Chef's Attraction). MIT License.
 """
 
 import os
-import pickle
 from fastapi import FastAPI, Request, HTTPException, Depends
 from pydantic import BaseModel
 from typing import Optional, List
@@ -15,7 +14,6 @@ import uvicorn
 
 from .graph import MemoryGraph
 from .pipeline import store, store_batch, recall, get_graph, set_graph, get_stm
-from .recency import ShortTermMemory
 
 API_TOKEN = os.environ.get("QMG_API_TOKEN", "")
 QMG_MODEL = os.environ.get("QMG_MODEL", None)  # e.g. thenlper/gte-large
@@ -49,7 +47,7 @@ async def startup():
     _graph = MemoryGraph(similarity_threshold=threshold, model=QMG_MODEL)
     set_graph(_graph)
     # Initialize short-term memory
-    stm = get_stm()
+    get_stm()
     print(f"  Model: {_graph._model_name}")
     print(f"  Short-term memory: enabled (recency + working memory + conversation)")
 

@@ -502,8 +502,7 @@ class MemoryGraph:
         
         # Handle old format: dict with G + memories
         if isinstance(obj, dict) and 'G' in obj and 'memories' in obj:
-            from .graph import MemoryGraph as MG
-            g = MG(similarity_threshold=0.3, model=model)
+            g = MemoryGraph(similarity_threshold=0.3, model=model)
             g.graph = obj['G']
             g.memories = obj['memories']
             g._rebuild_indices()
