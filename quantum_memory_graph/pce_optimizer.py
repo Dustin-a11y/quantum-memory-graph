@@ -140,11 +140,12 @@ def pce_encode_adjacency(adjacency: np.ndarray, encoding: Dict[int, Tuple], n_qu
         
         # Cross terms: candidates that share qubits interact
         shared = set(qubits_i) & set(qubits_j)
-        for q in shared:
-            for qi in qubits_i:
-                for qj in qubits_j:
-                    if qi != qj:
-                        qubit_adj[qi][qj] += weight * 0.5
+        if not shared:
+            continue
+        for qi in qubits_i:
+            for qj in qubits_j:
+                if qi != qj:
+                    qubit_adj[qi][qj] += weight * 0.5
     
     return qubit_adj
 
