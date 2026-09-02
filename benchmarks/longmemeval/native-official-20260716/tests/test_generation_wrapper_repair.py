@@ -14,8 +14,7 @@ Usage: python -m pytest test_generation_wrapper_repair.py -v
 import json
 import os
 import sys
-import time
-from unittest.mock import MagicMock, patch, PropertyMock
+from unittest.mock import MagicMock, PropertyMock
 
 import pytest
 
@@ -284,9 +283,6 @@ def test_bounded_retry_max_3(
     mock_completion_valid,
 ):
     """Verify retry loop respects max_retries=3 and never exceeds it."""
-    def _make_null():
-        return mock_completion_null_content
-
     max_retries = 3
 
     def simulate_retry_loop(completions):

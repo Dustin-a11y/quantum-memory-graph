@@ -11,9 +11,8 @@ import hashlib
 import json
 import sys
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import Any, Dict
 
-import pytest
 
 # Ensure the scripts/ directory is importable
 _SCRIPTS = Path(__file__).resolve().parent.parent / "scripts"

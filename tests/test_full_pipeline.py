@@ -11,12 +11,12 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import numpy as np
 from quantum_memory_graph.graph import MemoryGraph
-from quantum_memory_graph.pipeline import store, recall, store_batch, set_graph, get_graph
+from quantum_memory_graph.pipeline import recall, store_batch, set_graph
 from quantum_memory_graph.subgraph_optimizer import optimize_subgraph
 
 # Add benchmarks to path
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'benchmarks'))
-from memcombine import run_benchmark, SCENARIOS
+from memcombine import run_benchmark
 
 
 def test_graph_construction():

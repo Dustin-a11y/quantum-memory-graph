@@ -236,7 +236,6 @@ def main():
     print(f"\n  FINAL: R@5={r['recall_at_5']:.3f}  R@10={r['recall_at_10']:.3f}  ({time.time()-t0:.0f}s)\n", flush=True)
 
     # 2. Hybrid: Top-K → Graph+QAOA re-rank (sweep blend weights)
-    best_hybrid = None
     best_r5 = 0
     best_params = {}
 
@@ -266,8 +265,6 @@ def main():
 
     print(f"\n  Best sweep params: {best_params} → R@5={best_r5:.3f}", flush=True)
 
-    # Update hybrid_recall to use best topk_w
-    BEST_TOPK_W = best_params.get("topk_w", 0.6)
     BEST_TOP_SESS = best_params.get("top_sessions", 15)
     BEST_ALPHA = best_params.get("alpha", 0.3)
     BEST_BETA = best_params.get("beta", 0.2)

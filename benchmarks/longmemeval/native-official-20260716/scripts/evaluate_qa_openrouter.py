@@ -28,7 +28,6 @@ Usage:
 import argparse
 import hashlib
 import json
-import os
 import sys
 import time
 from datetime import datetime, timezone
@@ -209,8 +208,10 @@ def run_evaluation(
     client = OpenAI(api_key=api_key, base_url=base_url)
 
     # Load data
-    hypotheses = [json.loads(line) for line in open(hyp_file).readlines()]
-    references = json.load(open(ref_file))
+    with open(hyp_file) as f:
+        hypotheses = [json.loads(line) for line in f]
+    with open(ref_file) as f:
+        references = json.load(f)
     qid2qdata = {entry["question_id"]: entry for entry in references}
     qid2qtype = {entry["question_id"]: entry["question_type"] for entry in references}
 
@@ -433,10 +434,10 @@ def main():
         print(f"[dry-run] Credentials loaded.")
         print(f"[dry-run] Judge model: {JUDGE_MODEL}")
 
-        hypotheses = [
-            json.loads(line) for line in open(hyp_file).readlines()
-        ]
-        references = json.load(open(ref_file))
+        with open(hyp_file) as f:
+            hypotheses = [json.loads(line) for line in f]
+        with open(ref_file) as f:
+            references = json.load(f)
         qid2qtype = {
             entry["question_id"]: entry["question_type"] for entry in references
         }

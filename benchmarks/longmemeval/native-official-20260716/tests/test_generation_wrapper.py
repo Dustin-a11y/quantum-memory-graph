@@ -225,7 +225,6 @@ def test_hypothesis_output_schema():
     """Verify generated output matches the expected schema."""
     expected_keys = {'question_id', 'hypothesis'}
     # We validate that the output handler enforces these keys
-    from openai.types.chat import ChatCompletion
 
     # Schema check: any hypothesis output must have these keys
     # (enforced by our wrapper, not OpenAI)

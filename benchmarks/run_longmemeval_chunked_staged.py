@@ -100,10 +100,9 @@ def main():
         haystack_ids = item.get("haystack_session_ids", item.get("session_ids", []))
         answer_ids = item.get("answer_session_ids", item.get("answer_ids", []))
 
-        gold_indices = []
-        for g in answer_ids:
-            try: gold_indices.append(haystack_ids.index(g))
-            except ValueError: pass
+        gold_indices = [
+            haystack_ids.index(g) for g in answer_ids if g in haystack_ids
+        ]
 
         if not gold_indices or len(haystack) < 3:
             results.append({"idx": idx, "skip": True, "reason": "no_gold_or_too_few"})
@@ -243,7 +242,6 @@ def main():
                 count_tied += 1
 
         except Exception as e:
-            import traceback
             r["stage2_error"] = "%s: %s" % (type(e).__name__, e)
 
         results.append(r)

@@ -12,7 +12,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from sentence_transformers import SentenceTransformer
 from quantum_memory_graph.graph import MemoryGraph
-from quantum_memory_graph.pipeline import recall, set_graph, store_batch
+from quantum_memory_graph.pipeline import recall, set_graph
 
 
 def flatten_session(session):

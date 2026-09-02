@@ -93,10 +93,9 @@ def main():
         haystack_ids = item.get("haystack_session_ids", item.get("session_ids", []))
         answer_ids = item.get("answer_session_ids", item.get("answer_ids", []))
 
-        gold_indices = []
-        for g in answer_ids:
-            try: gold_indices.append(haystack_ids.index(g))
-            except ValueError: pass
+        gold_indices = [
+            haystack_ids.index(g) for g in answer_ids if g in haystack_ids
+        ]
 
         if not gold_indices or len(haystack) < 3:
             results.append({"idx": idx, "skip": True, "reason": "no_gold_or_too_few"})
@@ -110,8 +109,6 @@ def main():
         embs = model.encode(all_texts, normalize_embeddings=True, batch_size=32, show_progress_bar=False)
         q_emb = embs[0]
         sess_embs = embs[1:]
-        encode_time = time.time() - t0
-
         n_sessions = len(sess_embs)
 
         # --- Stage 1: Cosine ---

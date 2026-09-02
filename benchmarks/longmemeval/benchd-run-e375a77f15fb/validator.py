@@ -55,7 +55,6 @@ def verify_ed25519(public_key_hex: str, signature_hex: str, message: bytes) -> d
         from cryptography.hazmat.primitives.asymmetric.ed25519 import (
             Ed25519PublicKey,
         )
-        from cryptography.exceptions import InvalidSignature
 
         result["available"] = True
         pk_bytes = bytes.fromhex(public_key_hex)

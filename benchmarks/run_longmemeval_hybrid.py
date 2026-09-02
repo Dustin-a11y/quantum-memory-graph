@@ -114,7 +114,6 @@ def main():
     model = SentenceTransformer("thenlper/gte-large", device="cuda" if __import__('torch').cuda.is_available() else "cpu")
     print(f"Model: thenlper/gte-large, dim={model.get_sentence_embedding_dimension()}", flush=True)
 
-    results = {"embedding": {}, "hybrid": {}}
     per_question = []
     n_valid = 0
     t_start = time.time()
@@ -125,12 +124,9 @@ def main():
         haystack_ids = item.get("haystack_session_ids", item.get("session_ids", []))
         answer_ids = item.get("answer_session_ids", item.get("answer_ids", []))
 
-        gold_indices = []
-        for g in answer_ids:
-            try:
-                gold_indices.append(haystack_ids.index(g))
-            except ValueError:
-                pass
+        gold_indices = [
+            haystack_ids.index(g) for g in answer_ids if g in haystack_ids
+        ]
 
         if not gold_indices or len(haystack) < 3:
             continue

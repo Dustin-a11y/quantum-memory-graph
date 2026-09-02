@@ -33,7 +33,6 @@ Each turn:
 """
 
 import sys
-import os
 from typing import Optional
 
 # ---------------------------------------------------------------------------

@@ -12,12 +12,10 @@ Covers:
 6. Credential safety: never prints key
 """
 
-import json
 import os
 import sys
 import unittest
 from pathlib import Path
-from unittest.mock import MagicMock, patch
 
 # Add scripts directory to path for evaluate_qa_openrouter module
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "scripts"))
@@ -304,7 +302,6 @@ class TestOutputSchema(unittest.TestCase):
 
     def test_no_credentials_in_results(self):
         """Results must NEVER contain api_key or secret."""
-        forbidden = ["sk-or-", "api_key", "secret", "OPENROUTER_API_KEY"]
         # This is a design constraint — verify our code paths
         # by checking that the record construction doesn't include
         # credential fields
@@ -416,10 +413,8 @@ class TestCredentialSafety(unittest.TestCase):
 
     def test_dry_run_stdout_no_key_substring(self):
         """--dry-run must never print any portion of the API key."""
-        import io
         import json
         import tempfile
-        from contextlib import redirect_stdout
 
         # Create a minimal hypothesis file
         hyp_content = json.dumps({
@@ -515,7 +510,8 @@ class TestCredentialSafety(unittest.TestCase):
                 try:
                     os.unlink(p)
                 except OSError:
-                    pass
+                    # Best-effort cleanup: a prior test hook may have removed it.
+                    continue
 
 
 if __name__ == "__main__":

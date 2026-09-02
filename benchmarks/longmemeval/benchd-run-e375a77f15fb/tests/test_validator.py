@@ -59,7 +59,6 @@ class TestManifestHash:
 
 class TestEd25519Signature:
     def test_signature_verifies(self, manifest_data):
-        import hashlib
         from validator import verify_ed25519
 
         stored_hash = manifest_data["manifest_hash"]
@@ -76,11 +75,9 @@ class TestEd25519Signature:
 
     def test_signature_over_hash_not_full_manifest(self, manifest_data):
         """Confirm the signing scheme: signature is over hash hex string, not full JSON."""
-        import hashlib
         from validator import verify_ed25519
 
         stored_hash = manifest_data["manifest_hash"]
-        full_manifest_bytes = canonical_manifest_bytes(manifest_data["manifest"])
 
         result_hash = verify_ed25519(
             manifest_data["public_key"],
@@ -186,7 +183,6 @@ class TestNoSecrets:
     def test_no_secrets_in_full_manifest(self, manifest_data):
         """Scan the full 30MB manifest for API keys, tokens, and credential patterns."""
         import re
-        import json
         manifest_path = Path(__file__).resolve().parent.parent / "manifest.signed.json"
         with open(manifest_path) as f:
             raw = f.read()
