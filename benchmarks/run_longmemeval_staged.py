@@ -104,7 +104,6 @@ def main():
         texts = [flatten_session(s) for s in haystack]
 
         # Encode
-        t0 = time.time()
         all_texts = [question] + texts
         embs = model.encode(all_texts, normalize_embeddings=True, batch_size=32, show_progress_bar=False)
         q_emb = embs[0]
