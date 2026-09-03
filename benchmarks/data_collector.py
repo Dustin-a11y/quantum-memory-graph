@@ -19,7 +19,7 @@ import json
 import os
 import time
 from datetime import datetime
-from typing import Dict, List, Optional
+from typing import Dict
 from pathlib import Path
 
 
@@ -157,7 +157,6 @@ class QMGBenchmarkLogger:
         Returns path to CSV file.
         """
         import csv
-        from collections import OrderedDict
         
         categories = [category] if category else ["memcombine", "longmemeval", "qaoa", "graph", "hardware"]
         output_paths = []

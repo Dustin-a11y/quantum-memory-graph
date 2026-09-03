@@ -79,9 +79,7 @@ except ImportError:
 # ---------------------------------------------------------------------------
 try:
     from flask import Flask, request, jsonify, Response
-    FLASK_AVAILABLE = True
 except ImportError:
-    FLASK_AVAILABLE = False
     print("[ERROR] Flask not installed. Install with: pip install flask")
     print("[ERROR] Cannot start middleware without Flask.")
     sys.exit(1)
@@ -92,9 +90,7 @@ except ImportError:
 # ---------------------------------------------------------------------------
 try:
     import requests
-    REQUESTS_AVAILABLE = True
 except ImportError:
-    REQUESTS_AVAILABLE = False
     print("[ERROR] requests not installed. Install with: pip install requests")
     sys.exit(1)
 

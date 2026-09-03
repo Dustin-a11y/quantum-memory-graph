@@ -213,10 +213,6 @@ def main():
             total_prompt_tokens += usage.prompt_tokens
             total_completion_tokens += usage.completion_tokens
 
-            cost = None
-            if hasattr(usage, 'prompt_tokens_details'):
-                cost = getattr(usage.prompt_tokens_details, 'cost', None)
-
             hyp_entry = {
                 'question_id': qid,
                 'hypothesis': answer,

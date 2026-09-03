@@ -33,7 +33,6 @@ Each turn:
 """
 
 import sys
-import os
 from typing import Optional
 
 # ---------------------------------------------------------------------------
@@ -41,9 +40,7 @@ from typing import Optional
 # ---------------------------------------------------------------------------
 try:
     from quantum_memory_graph import store, recall
-    QMG_AVAILABLE = True
 except ImportError:
-    QMG_AVAILABLE = False
     print("[WARNING] quantum-memory-graph not installed. Install with: pip install quantum-memory-graph")
     print("[WARNING] Running in degraded mode — memory will be ephemeral dict.")
 

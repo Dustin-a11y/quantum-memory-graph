@@ -43,7 +43,8 @@ class TestNoGoldLabelLeakage(unittest.TestCase):
         sys.path.insert(0, SANDBOX)
         from qmg_chunked_hybrid_runner import ChunkedHybridRetriever
         cls.retriever = ChunkedHybridRetriever(device="cpu", use_cache=False)
-        cls.dataset = json.load(open(DATASET))
+        with open(DATASET) as f:
+            cls.dataset = json.load(f)
 
     def test_ranking_identical_with_or_without_answer_field(self):
         """Ranking must be identical whether answer field is present or not."""
@@ -113,7 +114,6 @@ class TestNoGoldLabelLeakage(unittest.TestCase):
     def test_no_answer_field_in_chunked_text(self):
         """Text fed to the embedding model must never contain the answer field."""
         item = self.dataset[0]
-        answer = item["answer"]
 
         # Monkey-patch to capture chunks
         captured_chunks = []
@@ -148,7 +148,8 @@ class TestSessionsPreserved(unittest.TestCase):
         sys.path.insert(0, SANDBOX)
         from qmg_chunked_hybrid_runner import ChunkedHybridRetriever
         cls.retriever = ChunkedHybridRetriever(device="cpu", use_cache=False)
-        cls.dataset = json.load(open(DATASET))
+        with open(DATASET) as f:
+            cls.dataset = json.load(f)
 
     def test_all_sessions_appear_in_ranked_items(self):
         """Every haystack session must appear in ranked_items."""
@@ -239,7 +240,8 @@ class TestHasAnswerStripped(unittest.TestCase):
         from qmg_chunked_hybrid_runner import ChunkedHybridRetriever
 
         retriever = ChunkedHybridRetriever(device="cpu", use_cache=False)
-        dataset = json.load(open(DATASET))
+        with open(DATASET) as f:
+            dataset = json.load(f)
 
         for item in dataset[:3]:
             rr = retriever.retrieve(item)
@@ -263,7 +265,8 @@ class TestDeterministic(unittest.TestCase):
         sys.path.insert(0, SANDBOX)
         from qmg_chunked_hybrid_runner import ChunkedHybridRetriever
         cls.retriever = ChunkedHybridRetriever(device="cpu", use_cache=False)
-        cls.dataset = json.load(open(DATASET))
+        with open(DATASET) as f:
+            cls.dataset = json.load(f)
 
     def test_same_item_produces_identical_ranking(self):
         """Running retrieval twice on the same item must produce identical results."""
@@ -477,7 +480,8 @@ class TestAlgorithmCorrectness(unittest.TestCase):
 
         # Verify the retriever actually uses the fusion
         retriever = ChunkedHybridRetriever(device="cpu", use_cache=False)
-        dataset = json.load(open(DATASET))
+        with open(DATASET) as f:
+            dataset = json.load(f)
         item = dataset[0]
 
         rr = retriever.retrieve(item)
@@ -498,7 +502,8 @@ class TestAlgorithmCorrectness(unittest.TestCase):
 
         # For a session with many chunks, only top-3 should matter
         retriever = ChunkedHybridRetriever(device="cpu", use_cache=False)
-        dataset = json.load(open(DATASET))
+        with open(DATASET) as f:
+            dataset = json.load(f)
 
         # Find a session with many user turns (= many chunks)
         for item in dataset:
@@ -634,7 +639,8 @@ class TestFailClosed(unittest.TestCase):
 
     def test_single_session_produces_single_ranking(self):
         """Item with one session must produce exactly one ranked item."""
-        dataset = json.load(open(DATASET))
+        with open(DATASET) as f:
+            dataset = json.load(f)
         # Take first item but keep only first session
         item = copy.deepcopy(dataset[0])
         item["haystack_sessions"] = item["haystack_sessions"][:1]

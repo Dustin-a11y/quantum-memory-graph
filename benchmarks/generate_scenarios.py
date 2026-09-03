@@ -8,9 +8,7 @@ DK 🦍
 import json
 from pathlib import Path
 import random
-import hashlib
-from typing import List, Dict, Tuple
-from itertools import combinations
+from typing import List, Dict
 
 # Scenario templates organized by category
 TEMPLATES = {

@@ -19,8 +19,8 @@ from itertools import product
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from quantum_memory_graph.graph import MemoryGraph
-from quantum_memory_graph.pipeline import recall, store_batch, set_graph
-from benchmarks.memcombine import run_benchmark, evaluate_combination
+from quantum_memory_graph.pipeline import recall, set_graph
+from benchmarks.memcombine import evaluate_combination
 
 # Load scenarios
 print("Loading 250 scenarios...")
