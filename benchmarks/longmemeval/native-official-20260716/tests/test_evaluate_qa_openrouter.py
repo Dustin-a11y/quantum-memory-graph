@@ -389,7 +389,7 @@ class TestCredentialSafety(unittest.TestCase):
             mode="w", delete=False, suffix=".env"
         ) as f:
             f.write("BENCHD_API_BASE=https://openrouter.ai/api/v1\n")
-            f.write("OPENROUTER_API_KEY=sk-or-v1-abcd1234efgh5678ijkl\n")
+            f.write("OPENROUTER_API_KEY=TEST_OPENROUTER_KEY\n")
             f.flush()
             env_path = f.name
 
@@ -404,9 +404,9 @@ class TestCredentialSafety(unittest.TestCase):
             self.assertNotIn("efgh5678", output)
             self.assertNotIn("ijkl", output)
             # Must NOT contain the full key
-            self.assertNotIn("sk-or-v1-abcd1234efgh5678ijkl", output)
+            self.assertNotIn("TEST_OPENROUTER_KEY", output)
             # Must return the key correctly
-            self.assertEqual(api_key, "sk-or-v1-abcd1234efgh5678ijkl")
+            self.assertEqual(api_key, "TEST_OPENROUTER_KEY")
             self.assertEqual(base_url, "https://openrouter.ai/api/v1")
         finally:
             os.unlink(env_path)
@@ -444,8 +444,8 @@ class TestCredentialSafety(unittest.TestCase):
             rf.flush()
             ref_path = rf.name
 
-        # Create a credential file with fake key
-        fake_key = "sk-or-v1-zyxw9876fedcba5432mnop"
+        # Create a credential file with scanner-safe fake key
+        fake_key = "TEST_OPENROUTER_KEY"
         with tempfile.NamedTemporaryFile(
             mode="w", delete=False, suffix=".env"
         ) as cf:
