@@ -29,6 +29,16 @@
   Tested in `tests/test_legacy_attr_migration.py` (7 tests), including the
   round-trip regression that an old pair becomes validator-clean after one
   load/save cycle.
+- Security: fix quadratic regex backtracking (ReDoS) in
+  `MemoryGraph._extract_temporal_entities`. Three unbounded quantifiers
+  (`\w+`, `\d+`) sat directly ahead of a required `\s+`, so a memory text of one
+  long token backtracked quadratically: 20k digits = 6-9s, 50k digits = ~115s of
+  blocked extraction. `add_memory` calls this, and `POST /memory` reaches
+  `add_memory`, so any API caller could stall a service for minutes. Quantifiers
+  are now length-capped, which bounds the engine to a constant number of splits
+  per position. 50k digits: 115s -> 0.12s. Output on 2,000 real memories is
+  byte-identical, and `tests/test_temporal_extraction_redos.py` pins both the
+  timing and the unchanged extraction results.
 - Note: units running with a `QMG_MODEL` override still fail their startup pair
   check on an untouched legacy pair, because the validator inspects the raw
   pickle before `load()` can strip anything. Those pairs need an explicit

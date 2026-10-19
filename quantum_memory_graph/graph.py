@@ -665,16 +665,21 @@ class MemoryGraph:
                     pass
 
         # --- Ages ("Rachel is 12", "I'm 25 years old") ---
-        for m in re.finditer(r'(\w+(?:\s+\w+)?)\s+(?:is|was|will be)\s+(\d{1,3})\s*(?:years?\s*old)?', text, re.IGNORECASE):
+        # Length caps are deliberate: unbounded \w+ / \d+ quantifiers ahead of a
+        # required \s+ backtrack quadratically on long single-token input (e.g. a
+        # 50k-digit memory text blocked extraction for ~115s). Capping each
+        # quantifier bounds the engine to a constant number of splits per
+        # position, making the scan linear on adversarial input.
+        for m in re.finditer(r'(\w{1,40}(?:\s+\w{1,40})?)\s+(?:is|was|will be)\s+(\d{1,3})\s*(?:years?\s*old)?', text, re.IGNORECASE):
             temporal.append({"type": "age", "subject": m.group(1).strip(), "value": int(m.group(2)), "text": m.group(0)})
         
         # --- Durations ("30 minutes", "2 hours", "3 days") ---
         # Require the unit word right after the number (no GPA-style false matches)
-        for m in re.finditer(r'(\d+)\s+(minute|hour|day|week|month|year)s?\b', text, re.IGNORECASE):
+        for m in re.finditer(r'(\d{1,9})\s+(minute|hour|day|week|month|year)s?\b', text, re.IGNORECASE):
             temporal.append({"type": "duration", "value": int(m.group(1)), "unit": m.group(2).lower(), "text": m.group(0)})
 
         # --- Explicit quantities with labels ("12 tomato plants", "$15,000", "412 pages") ---
-        for m in re.finditer(r'(\d+(?:,\d{3})*(?:\.\d+)?)\s+(\w+(?:\s+\w+){0,2})', text):
+        for m in re.finditer(r'(\d{1,20}(?:,\d{3}){0,9}(?:\.\d{1,9})?)\s+(\w{1,40}(?:\s+\w{1,40}){0,2})', text):
             num_str = m.group(1).replace(',', '')
             label = m.group(2).strip()
             # Skip false matches like "3 hours" (already caught by duration)
