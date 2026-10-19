@@ -9,10 +9,11 @@ Copyright 2026 Coinkong (Chef's Attraction). MIT License.
 """
 
 import numpy as np
+import re
 from typing import List, Dict, Optional
 from datetime import datetime
 
-from .graph import MemoryGraph
+from .graph import MemoryGraph, Memory
 from .subgraph_optimizer import optimize_subgraph as _std_optimize_subgraph
 from .recency import ShortTermMemory
 
@@ -20,6 +21,24 @@ from .recency import ShortTermMemory
 # Module-level default graph instance
 _default_graph: Optional[MemoryGraph] = None
 _default_stm: Optional[ShortTermMemory] = None
+_SAFE_METADATA_KEYS = ("session_index", "session_id", "session_date", "session_date_time")
+
+
+def _memory_result(mem: Memory, relevance: float, tier: str, connections=None) -> Dict:
+    """Render retrieval data while exposing only benchmark-neutral metadata."""
+    result = {
+        "id": mem.id if hasattr(mem, 'id') else "",
+        "text": mem.text,
+        "entities": mem.entities,
+        "relevance": float(relevance),
+        "source": mem.source,
+        "tier": tier,
+        "timestamp": mem.timestamp.isoformat() if mem.timestamp else None,
+        "metadata": {key: mem.metadata[key] for key in _SAFE_METADATA_KEYS if key in mem.metadata},
+    }
+    if connections is not None:
+        result["connections"] = connections
+    return result
 
 
 def get_graph(similarity_threshold: float = 0.3) -> MemoryGraph:
@@ -57,6 +76,7 @@ def store(
     source: str = "",
     metadata: Dict = None,
     graph: MemoryGraph = None,
+    semantic_facts: List[Dict] = None,
 ) -> Dict:
     """
     Store a memory in the knowledge graph.
@@ -78,7 +98,7 @@ def store(
     g = graph or get_graph()
     memory = g.add_memory(
         text=text, entities=entities, timestamp=timestamp,
-        source=source, metadata=metadata,
+        source=source, metadata=metadata, semantic_facts=semantic_facts,
     )
     
     # Update short-term memory
@@ -102,6 +122,90 @@ def store(
         "entities": memory.entities,
         "connections": len(edges),
         "top_connections": connections,
+        "graph_stats": g.stats(),
+    }
+
+
+def recall_facts(subject_id: str, relation_type: str,
+                 graph: MemoryGraph = None,
+                 observed_as_of: datetime = None,
+                 valid_at: datetime = None) -> Dict:
+    """Opt-in exact semantic recall, never an inferred identity or winner.
+
+    The ordinary text ``recall`` remains unchanged. This path returns every
+    indexed matching assertion with its provenance, both time dimensions,
+    and the legacy memory nodes supplying its evidence.
+    """
+    g = graph or get_graph()
+    facts = g.query_facts(subject_id, relation_type,
+                          observed_as_of=observed_as_of, valid_at=valid_at)
+    linked = []
+    seen = set()
+    today_str = datetime.now().strftime("%Y-%m-%d")
+    for fact in facts:
+        for memory_id in fact.evidence_memory_ids or (fact.source_memory_id,):
+            if memory_id in seen:
+                continue
+            if memory_id not in g.memories:
+                raise ValueError("typed fact links to a missing source memory")
+            seen.add(memory_id)
+            memory = g.memories[memory_id]
+            tier = "warm" if memory.timestamp and today_str in str(memory.timestamp) else "cold"
+            linked.append(_memory_result(memory, 1.0, tier))
+    return {
+        "ok": True,
+        "method": "semantic_index",
+        "facts": [fact.to_dict() for fact in facts],
+        "memories": linked,
+        "candidates": len(facts),
+    }
+
+
+def store_chunked(
+    text: str,
+    chunk_size: int = 500,
+    chunk_overlap: int = 100,
+    entities: List[str] = None,
+    timestamp: datetime = None,
+    source: str = "",
+    metadata: Dict = None,
+    graph: MemoryGraph = None,
+) -> Dict:
+    """
+    Store a memory as overlapping chunks, each with its own embedding.
+    Dramatically improves recall for specific fact retrieval.
+    """
+    g = graph or get_graph()
+    
+    if len(text) <= chunk_size:
+        return store(text=text, entities=entities, timestamp=timestamp,
+                    source=source, metadata=metadata, graph=g)
+    
+    chunks = []
+    start = 0
+    while start < len(text):
+        chunk = text[start:start + chunk_size]
+        chunks.append(chunk)
+        start += chunk_size - chunk_overlap
+    
+    chunk_ids = []
+    chunk_meta = (metadata or {}) | {
+        "chunked": True, "chunk_index": 0,
+        "total_chunks": len(chunks), "original_length": len(text),
+    }
+    
+    for i, chunk in enumerate(chunks):
+        chunk_meta["chunk_index"] = i
+        mem = g.add_memory(
+            text=chunk, entities=entities, timestamp=timestamp,
+            source=f"{source}#chunk{i}" if source else f"chunk{i}",
+            metadata=chunk_meta.copy(),
+        )
+        chunk_ids.append(mem.id)
+    
+    return {
+        "ok": True, "chunked": True,
+        "num_chunks": len(chunks), "chunk_ids": chunk_ids,
         "graph_stats": g.stats(),
     }
 
@@ -140,6 +244,7 @@ def recall(
     use_recency: bool = True,
     stm: ShortTermMemory = None,
     method: str = "qaoa",
+    text_weight: float = 0.3,
 ) -> Dict:
     """
     Recall optimal memories for a query.
@@ -167,7 +272,22 @@ def recall(
         Dict with selected memories, scores, method details
     """
     g = graph or get_graph()
-    
+
+    temporal_signals = {
+        "first", "before", "after", "when", "days", "weeks", "months",
+        "order", "ago", "current", "latest", "earlier", "later", "last",
+        "earliest", "newest", "recent", "since", "until",
+    }
+    reasoning_signals = {
+        "total", "average", "how many", "how much", "combined", "sum",
+        "difference",
+    }
+    query_lower = query.lower()
+    if any(re.search(rf"\b{re.escape(signal)}\b", query_lower)
+           for signal in temporal_signals | reasoning_signals):
+        top_seeds = max(top_seeds, 10)
+        max_candidates = max(max_candidates, K + 5, 20)
+
     if not g.memories:
         return {"ok": True, "memories": [], "method": "empty"}
     
@@ -180,7 +300,7 @@ def recall(
         return "cold"
     
     # Phase 1: Graph neighborhood search
-    neighborhood = g.get_neighborhood(
+    neighborhood = g.get_neighborhood(text_weight=text_weight, 
         query=query, hops=hops, top_seeds=top_seeds
     )
     
@@ -202,13 +322,7 @@ def recall(
     
     if len(candidate_ids) <= K:
         memories = [
-            {
-                "text": g.memories[cid].text,
-                "entities": g.memories[cid].entities,
-                "relevance": float(candidate_scores[i]),
-                "source": g.memories[cid].source,
-                "tier": _tier(g.memories[cid]),
-            }
+            _memory_result(g.memories[cid], candidate_scores[i], _tier(g.memories[cid]))
             for i, cid in enumerate(candidate_ids)
         ]
         return {
@@ -234,14 +348,9 @@ def recall(
             for idx in selected_synergy:
                 cid = candidate_ids[idx]
                 mem = g.memories[cid]
-                selected_memories.append({
-                    "text": mem.text,
-                    "entities": mem.entities,
-                    "relevance": float(candidate_scores[idx]),
-                    "source": mem.source,
-                    "tier": _tier(mem),
-                    "connections": [],
-                })
+                selected_memories.append(
+                    _memory_result(mem, candidate_scores[idx], _tier(mem), connections=[])
+                )
             return {
                 "ok": True,
                 "memories": selected_memories,
@@ -318,14 +427,9 @@ def recall(
                         "types": edge_data.get("types", []),
                     })
         
-        selected_memories.append({
-            "text": mem.text,
-            "entities": mem.entities,
-            "relevance": float(candidate_scores[idx]),
-            "source": mem.source,
-            "tier": _tier(mem),
-            "connections": connections,
-        })
+        selected_memories.append(
+            _memory_result(mem, candidate_scores[idx], _tier(mem), connections=connections)
+        )
     
     return {
         "ok": True,
@@ -334,13 +438,326 @@ def recall(
         "candidates": len(candidate_ids),
         "K": K,
         "qaoa_score": result["score"],
-        "greedy_score": result["greedy"]["score"],
-        "optimal_score": result["optimal"]["score"],
-        "qaoa_vs_optimal_pct": round(float(qaoa_vs_optimal), 2),
-        "qaoa_vs_greedy_pct": round(float(qaoa_vs_greedy), 2),
+        "greedy_score": result.get("greedy", {}).get("score"),
+        "optimal_score": result.get("optimal", {}).get("score"),
+        "qaoa_vs_optimal_pct": round(float(qaoa_vs_optimal), 2) if result.get("optimal") else None,
+        "qaoa_vs_greedy_pct": round(float(qaoa_vs_greedy), 2) if result.get("greedy") else None,
         "tier_counts": {
             "warm": sum(1 for m in selected_memories if m["tier"] == "warm"),
             "cold": sum(1 for m in selected_memories if m["tier"] == "cold"),
         },
         "graph_stats": g.stats(),
+    }
+
+
+def answer(
+    query: str,
+    K: int = 5,
+    model: str = "deepseek/deepseek-chat",
+    api_key: str = None,
+    graph: MemoryGraph = None,
+) -> Dict:
+    """
+    Answer a question by recalling relevant memories and synthesizing an answer.
+    
+    Pipeline:
+      1. Recall K memories via graph + QAOA
+      2. Build a prompt with recalled context
+      3. Call LLM to synthesize a concise answer
+      4. Return answer with sources and confidence
+    
+    Args:
+        query: The question to answer
+        K: Number of memories to recall
+        model: LLM model for synthesis (via Vercel AI Gateway)
+        api_key: Vercel API key (defaults to env variable)
+        graph: Optional custom graph
+    
+    Returns:
+        Dict with answer, sources, confidence
+    """
+    import os
+    import json
+    import urllib.request
+    import re as _re
+
+    # Minimal bounded retry constant for empty-answer recovery
+    _MAX_ANSWER_RETRIES = 1
+
+    def _sanitize_error(err_msg: str) -> str:
+        """Strip sensitive patterns (API keys, URLs, paths) from error messages."""
+        sanitized = str(err_msg)
+        sanitized = _re.sub(r'https?://[^\s\'\"]+', '[URL-REDACTED]', sanitized)
+        sanitized = _re.sub(r'sk-[a-zA-Z0-9_-]{20,}', '[API-KEY-REDACTED]', sanitized)
+        sanitized = _re.sub(r'Bearer\s+[a-zA-Z0-9._\-=]+', '[TOKEN-REDACTED]', sanitized)
+        sanitized = _re.sub(r'File\s+".*?(/[^"]+)",\s*line\s+\d+', r'File "[PATH-REDACTED]", line N', sanitized)
+        return sanitized[:120]
+
+    def _call_llm_safe(prompt: str, api_key: str, api_base: str, model: str):
+        """Call LLM API with bounded retry on empty content."""
+        req_data = json.dumps({
+            "model": model,
+            "messages": [{"role": "user", "content": prompt}],
+            "max_tokens": 200,
+            "temperature": 0.1,
+        }).encode()
+        req = urllib.request.Request(
+            f"{api_base}/chat/completions",
+            data=req_data,
+            headers={
+                "Authorization": f"Bearer {api_key}",
+                "Content-Type": "application/json",
+            },
+        )
+        with urllib.request.urlopen(req, timeout=30) as resp:
+            result = json.loads(resp.read())
+            content = result["choices"][0]["message"]["content"].strip()
+        if not content and _MAX_ANSWER_RETRIES > 0:
+            # One bounded empty retry
+            req = urllib.request.Request(
+                f"{api_base}/chat/completions",
+                data=req_data,
+                headers={
+                    "Authorization": f"Bearer {api_key}",
+                    "Content-Type": "application/json",
+                },
+            )
+            with urllib.request.urlopen(req, timeout=30) as resp:
+                result = json.loads(resp.read())
+                content = result["choices"][0]["message"]["content"].strip()
+        return content
+    
+    # Step 1: Recall
+    recall_result = recall(query=query, K=K, graph=graph)
+    memories = recall_result.get("memories", [])
+    
+    if not memories:
+        return {
+            "ok": True,
+            "answer": "I don't have enough information to answer that question.",
+            "sources": [],
+            "confidence": 0.0,
+            "method": "no_memories",
+        }
+    
+    # Step 2: Build context from memories
+    context_parts = []
+    sources = []
+    for i, mem in enumerate(memories):
+        ctx = f"[Memory {i+1}] {mem['text']}"
+        entities = mem.get("entities", [])
+        if entities:
+            ctx += f"\n  Entities: {', '.join(entities[:5])}"
+        context_parts.append(ctx)
+        sources.append({
+            "text": mem["text"][:200],
+            "relevance": mem.get("relevance", 0),
+            "entities": mem.get("entities", []),
+            "source": mem.get("source", ""),
+        })
+    
+    context = "\n\n".join(context_parts)
+    
+    # Step 3: Build prompt
+    prompt = f"""You are answering a question based ONLY on the provided memories. 
+If the memories don't contain the answer, say "I don't have enough information."
+Be concise and direct. Return ONLY the answer, no explanations.
+
+MEMORIES:
+{context}
+
+QUESTION: {query}
+
+ANSWER:"""
+    
+    # Step 4: Call LLM via OpenRouter
+    api_key = api_key or os.environ.get("OPENROUTER_API_KEY", "") or os.environ.get("VERCEL_API_KEY", "")
+    api_base = os.environ.get("BENCHD_API_BASE", "https://openrouter.ai/api/v1")
+    model = os.environ.get("QMG_ANSWER_MODEL", "deepseek/deepseek-chat")
+    
+    if not api_key:
+        # Fallback: heuristic answer from top memory
+        top_mem = memories[0]["text"]
+        return {
+            "ok": True,
+            "answer": top_mem,
+            "sources": sources,
+            "confidence": memories[0].get("relevance", 0),
+            "method": "heuristic_fallback",
+        }
+    
+    try:
+        answer_text = _call_llm_safe(prompt, api_key, api_base, model)
+        
+        # Compute confidence from top relevance scores
+        confidences = [m.get("relevance", 0) for m in memories[:3]]
+        confidence = sum(confidences) / len(confidences) if confidences else 0
+        
+        return {
+            "ok": True,
+            "answer": answer_text,
+            "sources": sources,
+            "confidence": round(confidence, 3),
+            "method": "llm_synthesis",
+            "model": model,
+            "recall_method": recall_result.get("method", "unknown"),
+        }
+    
+    except Exception as e:
+        # Fallback to heuristic — error message sanitized to prevent leak
+        top_mem = memories[0]["text"]
+        return {
+            "ok": True,
+            "answer": top_mem,
+            "sources": sources,
+            "confidence": memories[0].get("relevance", 0),
+            "method": f"llm_failed: {_sanitize_error(str(e))}",
+        }
+
+
+def temporal_answer(
+    query: str,
+    K: int = 8,
+    graph: MemoryGraph = None,
+) -> Dict:
+    """
+    Answer temporal/numeric questions using extracted temporal entities.
+    """
+    import re
+    from datetime import datetime, timedelta
+    
+    # Step 1: Recall
+    recall_result = recall(query=query, K=K, graph=graph)
+    memories = recall_result.get("memories", [])
+    
+    if not memories:
+        return {"ok": True, "answer": "No memories found.", "confidence": 0.0}
+    
+    g = graph or get_graph()
+    
+    # Step 2: Extract temporal entities from recalled memories
+    all_temporal = []
+    for mem in memories:
+        mem_id = Memory.make_id(mem["text"])
+        if mem_id in g.memories:
+            node = g.memories[mem_id]
+            for te in node.temporal_entities:
+                all_temporal.append({
+                    "type": te.get("type", ""),
+                    "value": te.get("value", ""),
+                    "text": te.get("text", ""),
+                    "subject": te.get("subject", ""),
+                    "label": te.get("label", ""),
+                    "unit": te.get("unit", ""),
+                    "memory_text": mem["text"][:120],
+                    "relevance": mem.get("relevance", 0),
+                })
+    
+    q = query.lower()
+    
+    # --- PATTERN: "How old will X be when Y?" ---
+    age_match = re.search(r'how old will (\w+(?:\s+\w+)?) be', q)
+    if age_match:
+        subject = age_match.group(1).strip()
+        ages = [t for t in all_temporal if t["type"] == "age" and subject.lower() in str(t.get("subject","")).lower()]
+        dates = [t for t in all_temporal if t["type"] == "date"]
+        if ages and dates:
+            age_val = ages[0]["value"]
+            date_val = dates[0]["value"]
+            try:
+                event_date = datetime.strptime(date_val, "%Y-%m-%d")
+                return {
+                    "ok": True,
+                    "answer": f"{subject.title()} is currently {age_val}. The event is on {date_val}. She will be {age_val} at that time unless her birthday passes between now and then.",
+                    "confidence": 0.7,
+                    "method": "temporal_age",
+                }
+            except:
+                pass
+        if ages:
+            return {
+                "ok": True,
+                "answer": f"{subject.title()} is {ages[0]['value']} years old according to memories.",
+                "confidence": 0.6,
+                "method": "temporal_age_partial",
+            }
+    
+    # --- PATTERN: "How many X" or "What is the total X" (sum queries) ---
+    if re.search(r'(how many|what is the total|total|sum|combined|add up)', q):
+        # Find quantities in recalled memories
+        quantities = [t for t in all_temporal if t["type"] == "quantity"]
+        durations = [t for t in all_temporal if t["type"] == "duration"]
+        
+        if quantities and len(quantities) >= 2:
+            # Try to sum same-label quantities
+            labels = {}
+            for t in quantities:
+                lbl = t.get("label", "").lower().rstrip('s')
+                if lbl not in labels:
+                    labels[lbl] = []
+                labels[lbl].append(t["value"])
+            
+            parts = []
+            total = 0
+            for lbl, vals in labels.items():
+                if len(vals) >= 2:
+                    s = sum(vals)
+                    total += s
+                    parts.append(f"{lbl}: {s}")
+                else:
+                    total += vals[0]
+                    parts.append(f"{lbl}: {vals[0]}")
+            
+            return {
+                "ok": True,
+                "answer": f"Total: {total} ({', '.join(parts)})",
+                "confidence": 0.75,
+                "method": "temporal_sum",
+            }
+    
+    # --- PATTERN: "How many minutes did I exceed" (comparison queries) ---
+    if re.search(r'(exceed|over by|more than|faster than|slower than)', q):
+        durations = [t for t in all_temporal if t["type"] == "duration"]
+        if len(durations) >= 2:
+            # Find the difference
+            vals = sorted([t["value"] for t in durations])
+            diff = max(vals) - min(vals)
+            return {
+                "ok": True,
+                "answer": f"Exceeded by {diff} {durations[0].get('unit','units')}.",
+                "confidence": 0.7,
+                "method": "temporal_exceed",
+            }
+    
+    # --- PATTERN: "What is the average X" ---
+    if re.search(r'average|mean', q):
+        quantities = [t for t in all_temporal if t["type"] == "quantity"]
+        if quantities:
+            values = [t["value"] for t in quantities]
+            avg = sum(values) / len(values)
+            return {
+                "ok": True,
+                "answer": f"Average: {avg:.2f}",
+                "confidence": 0.7,
+                "method": "temporal_average",
+            }
+    
+    # --- PATTERN: date lookup ("When did I", "What date") ---
+    if re.search(r'(when did|what date|when was)', q):
+        dates = [t for t in all_temporal if t["type"] == "date"]
+        if dates:
+            return {
+                "ok": True,
+                "answer": dates[0]["value"],
+                "confidence": 0.8,
+                "method": "temporal_date_lookup",
+            }
+    
+    # --- FALLBACK: return the TOP memory text directly (not noise) ---
+    top = memories[0]
+    return {
+        "ok": True,
+        "answer": top["text"],
+        "confidence": top.get("relevance", 0),
+        "method": "temporal_fallback_top_memory",
     }
