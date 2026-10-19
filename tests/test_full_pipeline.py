@@ -14,9 +14,18 @@ from quantum_memory_graph.graph import MemoryGraph
 from quantum_memory_graph.pipeline import recall, store_batch, set_graph
 from quantum_memory_graph.subgraph_optimizer import optimize_subgraph
 
+import pytest
+
 # Add benchmarks to path
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'benchmarks'))
-from memcombine import run_benchmark
+
+# MemCombine was removed from the repo in 1.2.1, so this module import aborted
+# collection of the WHOLE suite (nothing in tests/ could run). Import it
+# optionally and skip only the benchmark test that needs it.
+try:
+    from memcombine import run_benchmark
+except ImportError:  # pragma: no cover - optional local benchmark module
+    run_benchmark = None
 
 
 def test_graph_construction():
@@ -48,12 +57,20 @@ def test_graph_construction():
     print(f"  Components: {stats['components']}")
     print(f"  Avg degree: {stats['avg_degree']:.1f}")
     
-    assert stats['nodes'] == 10, f"Expected 10 nodes, got {stats['nodes']}"
+    # len(memories), not a hardcoded 10: the list above has been edited since the
+    # assertion was written, and an exact literal made the test lie about intent.
+    assert stats['nodes'] == len(memories), f"Expected {len(memories)} nodes, got {stats['nodes']}"
     assert stats['edges'] > 5, f"Expected >5 edges, got {stats['edges']}"
     assert stats['density'] > 0, "Graph should have some density"
     
     print("  ✅ PASS\n")
     return g
+
+
+@pytest.fixture(scope="module")
+def g():
+    """The graph built by test_graph_construction (which returns it for reuse)."""
+    return test_graph_construction()
 
 
 def test_neighborhood_search(g):
@@ -189,8 +206,11 @@ def test_full_pipeline():
     print("  ✅ PASS\n")
 
 
+@pytest.mark.skipif(run_benchmark is None, reason="MemCombine benchmark module was removed in 1.2.1")
 def test_memcombine_benchmark():
     """Run MemCombine benchmark: Graph+QAOA vs Top-K."""
+    if run_benchmark is None:  # pragma: no cover - skipped above
+        pytest.skip("MemCombine benchmark module not available")
     print("=" * 60)
     print("TEST 5: MemCombine Benchmark")
     print("=" * 60)
