@@ -1,5 +1,39 @@
 # Changelog
 
+## 1.3.0 (2026-10-19)
+- Bring the deployed L3 safety layer under version control. Seven modules that
+  existed only in the release working tree are now in the repo:
+  `rollback`, `semantic`, `admission`, `inventory_v2`, `cache_attestation`,
+  `learning`, `search`. Without this, the code that hash-pins and validates
+  every production graph pair had no source of record and no off-machine copy.
+- Sync `api`, `graph`, `pipeline`, `recency` and `__init__` with the deployed
+  release, so the repo matches what actually runs and is graded by CI.
+- Deliberately NOT synced: `pce_optimizer` and `subgraph_optimizer`. The deployed
+  versions diverge from this repo's pinned tests in two ways and need a
+  deliberate decision rather than a silent copy:
+  1. `pce_encode_adjacency` in the deployed version adds `weight * 0.5` once per
+     shared qubit instead of once per (qi, qj) pair, inflating shared-qubit
+     weights by the number of shared qubits. That is exactly the double count
+     `tests/test_pce_optimizer.py` exists to prevent.
+  2. `optimize_subgraph` in the deployed version returns method `"greedy"`
+     where the repo's CodeQL-cleanup test pins `"greedy_fallback"`.
+  Both are open findings, not repo regressions; the repo keeps the version its
+  tests pin until the deployed behaviour is reviewed.
+- Fix: `MemoryGraph.load()` now strips third-generation attributes that no
+  current code reads (`sources`, `_source_index`, `max_connections`) under
+  guard. Pairs written by the older package previously failed the strict pair
+  validator forever: the loader added `semantic_store` but never removed the
+  legacy fields, so `save()` re-emitted a pair its own validator rejected. The
+  strip refuses to drop anything that carries data — non-empty `sources` or
+  `_source_index`, or a non-int `max_connections`, raise instead.
+  Tested in `tests/test_legacy_attr_migration.py` (7 tests), including the
+  round-trip regression that an old pair becomes validator-clean after one
+  load/save cycle.
+- Note: units running with a `QMG_MODEL` override still fail their startup pair
+  check on an untouched legacy pair, because the validator inspects the raw
+  pickle before `load()` can strip anything. Those pairs need an explicit
+  cold-bootstrap conversion.
+
 ## 1.2.1 (2026-05-31)
 - Add synergy reranker: word-overlap synergy + diversity selection
 - Wire synergy reranker into pipeline: recall(query, method="synergy")
