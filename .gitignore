@@ -18,3 +18,10 @@ htmlcov/
 *.key
 palace/
 benchd-openrouter.env
+
+# --- QMG graph data artifacts (never commit; see docs/PUBLIC-REPO-POLICY.md) ---
+*.pkl
+*.pkl.bak
+graph.json
+.qmg-data/
+bootstrap_receipt.json

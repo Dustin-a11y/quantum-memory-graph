@@ -1,0 +1,28 @@
+name: Data artifact guard
+
+on:
+  pull_request:
+  push:
+    branches: [ "main" ]
+
+permissions:
+  contents: read
+
+jobs:
+  data-artifact-guard:
+    name: data-artifact-guard
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+
+      - name: Fail if graph data artifacts are tracked
+        run: |
+          bad=$(git ls-files | grep -E '(^|/)graph\.json$|\.pkl$' || true)
+          if [ -n "$bad" ]; then
+            echo "::error::QMG graph data artifacts must not be committed:"
+            echo "$bad"
+            exit 1
+          fi
+          echo "OK: no tracked .pkl or graph.json files"
