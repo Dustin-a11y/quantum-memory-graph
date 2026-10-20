@@ -1,6 +1,19 @@
 # Changelog
 
 ## 1.3.0 (2026-10-19)
+- Fix: recall no longer discards the most relevant memory. The subgraph
+  objective mixes relevance with connectivity and coverage, so a well-connected
+  cluster could outvote the single most relevant memory and drop the answer
+  entirely. Measured on LongMemEval with a 4,436-memory graph and 48 gold
+  questions, the gold memory was ranked #1 by plain embedding search and then
+  dropped by the shipped selection step in **55%** of questions - gold retention
+  in top-5 fell from 0.875 to **0.417**. The returned set is now anchored on the
+  top `relevance_anchor` candidates (default 1), recovering retention to
+  **0.854**; `relevance_anchor=K` (0.896) gives pure relevance top-K and
+  `relevance_anchor=0` restores the old behaviour. Recall responses also expose
+  `selection_method` and `relevance_anchor`, and `qaoa_vs_greedy_pct` is `None`
+  when no real QAOA-vs-greedy comparison exists instead of silently reporting
+  100%. See issue #27.
 - Add `kong_graph` as the public package name, as a **transparent alias** rather
   than a rename. Every persisted graph pair pickles
   `quantum_memory_graph.graph.MemoryGraph`,
