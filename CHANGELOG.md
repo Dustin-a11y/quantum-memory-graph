@@ -1,6 +1,17 @@
 # Changelog
 
 ## 1.3.0 (2026-10-19)
+- Add `kong_graph` as the public package name, as a **transparent alias** rather
+  than a rename. Every persisted graph pair pickles
+  `quantum_memory_graph.graph.MemoryGraph`,
+  `quantum_memory_graph.semantic.SemanticStore` and
+  `quantum_memory_graph.learning.RecallTracker`, so retiring the old module name
+  would make every existing pair unloadable. `kong_graph.X` and
+  `quantum_memory_graph.X` resolve to the identical module objects — class
+  identity, `isinstance()` and pickle round-trips all work through either name.
+  Verified against a real 205-memory production pair. `api` stays lazy so
+  importing the alias never forces the optional fastapi extra.
+  See `tests/test_kong_graph_alias.py`.
 - Bring the deployed L3 safety layer under version control. Seven modules that
   existed only in the release working tree are now in the repo:
   `rollback`, `semantic`, `admission`, `inventory_v2`, `cache_attestation`,
