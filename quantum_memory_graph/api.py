@@ -12,6 +12,7 @@ import os
 import pickle
 import json
 import hashlib
+import logging
 import math
 import re
 import tempfile
@@ -32,6 +33,8 @@ from .graph import MemoryGraph, Memory
 from .pipeline import store, store_batch, store_chunked, recall, recall_facts, answer, temporal_answer, get_graph, set_graph, get_stm, set_stm
 from .recency import ShortTermMemory
 from .search import hybrid_search
+
+logger = logging.getLogger(__name__)
 
 API_TOKEN = os.environ.get("QMG_API_TOKEN", "")
 
@@ -434,7 +437,8 @@ async def api_semantic_store(req: SemanticStoreRequest):
             req.semantic_facts, source=req.source, source_memory_id=source_memory_id
         )
     except (ValueError, TypeError, KeyError) as exc:
-        raise HTTPException(status_code=422, detail=str(exc)) from exc
+        logger.exception("semantic store rejected malformed fact payload")
+        raise HTTPException(status_code=422, detail="invalid semantic fact payload") from exc
 
     try:
         result = store(
@@ -452,7 +456,11 @@ async def api_semantic_store(req: SemanticStoreRequest):
             "refusing ambiguous provenance",
         ):
             raise
-        raise HTTPException(status_code=422, detail=str(exc)) from exc
+        logger.exception("semantic store refused typed write on provenance conflict")
+        raise HTTPException(
+            status_code=422,
+            detail="typed semantic write refused: provenance conflict",
+        ) from exc
 
     result["fact_ids"] = [fact.id for fact in prepared]
     return result
@@ -467,13 +475,19 @@ async def api_semantic_recall(req: SemanticRecallRequest):
     try:
         _semantic._validate_subject_relation(req.subject_id, req.relation_type)
     except ValueError as exc:
-        raise HTTPException(status_code=422, detail=str(exc)) from exc
+        logger.exception("semantic recall rejected subject_id/relation_type")
+        raise HTTPException(
+            status_code=422, detail="invalid subject_id or relation_type"
+        ) from exc
 
     try:
         observed_as_of = _semantic._utc(req.observed_as_of, "observed_as_of")
         valid_at = _semantic._utc(req.valid_at, "valid_at")
     except ValueError as exc:
-        raise HTTPException(status_code=422, detail=str(exc)) from exc
+        logger.exception("semantic recall rejected observed_as_of/valid_at timestamp")
+        raise HTTPException(
+            status_code=422, detail="invalid observed_as_of or valid_at timestamp"
+        ) from exc
 
     return recall_facts(
         subject_id=req.subject_id,
@@ -1016,53 +1030,6 @@ async def api_delete_by_source(req: DeleteBySourceRequest):
             result["persisted"] = False
             result["persist_error"] = str(e)
     return result
-
-
-# ─── Source API endpoints ────────────────────────────────────────
-
-
-class SourceRequest(BaseModel):
-    type: str  # "url", "file", "manual"
-    url: str = ""
-    title: str = ""
-    content: str = ""
-
-
-@app.post("/source")
-async def api_add_source(req: SourceRequest):
-    g = get_graph()
-    content_hash = hashlib.md5(req.content.encode()).hexdigest()[:16] if req.content else ""
-    src = g.add_source(
-        source_type=req.type,
-        url=req.url,
-        title=req.title,
-        content_hash=content_hash,
-    )
-    return {
-        "ok": True,
-        "source_id": src.id,
-        "node_count": g.graph.number_of_nodes(),
-    }
-
-
-@app.get("/source/{source_id}/graph")
-async def api_source_graph(source_id: str):
-    g = get_graph()
-    result = g.get_source_memories(source_id)
-    if result.get("error"):
-        raise HTTPException(status_code=404, detail=result["error"])
-    return result
-
-
-@app.get("/sources")
-async def api_list_sources():
-    g = get_graph()
-    sources = g.list_sources()
-    return {
-        "ok": True,
-        "sources": sources,
-        "total": len(sources),
-    }
 
 
 @app.get("/graph")
