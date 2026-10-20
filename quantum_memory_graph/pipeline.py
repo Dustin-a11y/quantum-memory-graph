@@ -231,6 +231,52 @@ def store_batch(
     }
 
 
+def _anchor_top_relevance(selection, relevance_scores, K: int,
+                          anchor: int = 1) -> List[int]:
+    """Guarantee the most relevant candidates survive subgraph selection.
+
+    The subgraph objective mixes relevance (alpha) with connectivity
+    (beta_conn) and coverage (gamma_cov), so a well-connected cluster can
+    outvote the single most relevant memory - usually the one the question
+    needs. Measured on LongMemEval, unanchored QAOA selection dropped a rank-1
+    gold memory in 55% of the questions plain embedding search had ranked first
+    (issue #27).
+
+    The ``anchor`` highest-relevance candidates are kept whatever the optimiser
+    returned; its own picks fill the remaining slots and any shortfall is filled
+    in relevance order. ``anchor=K`` is pure relevance top-K, ``anchor=0`` is
+    the historic behaviour.
+    """
+    scores = np.asarray(relevance_scores, dtype=float)
+    n = len(scores)
+    if n == 0 or K <= 0:
+        return []
+    limit = min(K, n)
+
+    if anchor <= 0:
+        out: List[int] = []
+        for idx in selection:
+            i = int(idx)
+            if 0 <= i < n and i not in out:
+                out.append(i)
+        return out[:limit]
+
+    order = [int(i) for i in np.argsort(-scores, kind="stable")]
+    out = order[:min(anchor, limit)]
+    for idx in selection:
+        if len(out) >= limit:
+            break
+        i = int(idx)
+        if 0 <= i < n and i not in out:
+            out.append(i)
+    for i in order:
+        if len(out) >= limit:
+            break
+        if i not in out:
+            out.append(i)
+    return out[:limit]
+
+
 def recall(
     query: str,
     K: int = 5,
@@ -245,6 +291,7 @@ def recall(
     stm: ShortTermMemory = None,
     method: str = "qaoa",
     text_weight: float = 0.3,
+    relevance_anchor: int = 1,
 ) -> Dict:
     """
     Recall optimal memories for a query.
@@ -400,7 +447,8 @@ def recall(
             "method": "greedy_safety_net",
         }
     
-    selected_idxs = result["selection"]
+    selected_idxs = _anchor_top_relevance(
+        result["selection"], candidate_scores, K, relevance_anchor)
     selected_memories = []
     
     # Compute comparison pcts safely
@@ -435,13 +483,19 @@ def recall(
         "ok": True,
         "memories": selected_memories,
         "method": "qaoa_subgraph",
+        # The selection path that actually executed. "qaoa_subgraph" above is
+        # historical and was returned even when the optimiser raised and greedy
+        # ran instead, which hid PCE failures in production (issue #27).
+        "selection_method": result.get("method", "unknown"),
+        "relevance_anchor": relevance_anchor,
         "candidates": len(candidate_ids),
         "K": K,
         "qaoa_score": result["score"],
         "greedy_score": result.get("greedy", {}).get("score"),
         "optimal_score": result.get("optimal", {}).get("score"),
         "qaoa_vs_optimal_pct": round(float(qaoa_vs_optimal), 2) if result.get("optimal") else None,
-        "qaoa_vs_greedy_pct": round(float(qaoa_vs_greedy), 2) if result.get("greedy") else None,
+        "qaoa_vs_greedy_pct": (round(float(qaoa_vs_greedy), 2)
+                               if result.get("qaoa") and result.get("greedy") else None),
         "tier_counts": {
             "warm": sum(1 for m in selected_memories if m["tier"] == "warm"),
             "cold": sum(1 for m in selected_memories if m["tier"] == "cold"),
