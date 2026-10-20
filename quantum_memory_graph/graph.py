@@ -322,6 +322,7 @@ class MemoryGraph:
         try:
             self._bm25_corpus.remove(memory.text)
         except ValueError:
+            # Text was not in the BM25 corpus; dropping the node is still correct.
             pass
         self._bm25 = None  # Invalidate cached BM25
         # Remove node from graph (drops its edges)
@@ -662,6 +663,7 @@ class MemoryGraph:
                     iso = fmt(match)
                     temporal.append({"type": "date", "value": iso, "text": match.group(0)})
                 except:
+                    # A malformed date token is skipped; other temporal entities are still kept.
                     pass
 
         # --- Ages ("Rachel is 12", "I'm 25 years old") ---
@@ -687,6 +689,7 @@ class MemoryGraph:
                 try:
                     temporal.append({"type": "quantity", "value": float(num_str), "label": label, "text": m.group(0)})
                 except:
+                    # An unparseable quantity is skipped so the rest of extraction continues.
                     pass
 
         return temporal

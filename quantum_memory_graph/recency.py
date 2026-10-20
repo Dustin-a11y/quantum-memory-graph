@@ -9,13 +9,10 @@ Adds three capabilities:
 DK 🦍 — v0.4.0
 """
 
-import math
 import time
 from collections import deque
-from datetime import datetime, timedelta
-from typing import Dict, List, Optional, Tuple
-
-import numpy as np
+from datetime import datetime
+from typing import Dict, List, Optional
 
 
 class RecencyBooster:

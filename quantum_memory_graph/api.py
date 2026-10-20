@@ -9,7 +9,6 @@ Copyright 2026 Coinkong (Chef's Attraction). MIT License.
 import asyncio
 import ipaddress
 import os
-import pickle
 import json
 import hashlib
 import logging
@@ -27,7 +26,7 @@ import uvicorn
 
 from . import rollback as _rollback
 from . import semantic as _semantic
-from .admission import AdmissionGate, graph_inventory, sha256 as _canonical_sha256
+from .admission import AdmissionGate, graph_inventory
 from .cache_attestation import verify_and_detach_embedder
 from .graph import MemoryGraph, Memory
 from .pipeline import store, store_batch, store_chunked, recall, recall_facts, answer, temporal_answer, get_graph, set_graph, get_stm, set_stm
@@ -213,6 +212,7 @@ def _atomic_save(save_fn, destination: str):
         try:
             os.unlink(temporary)
         except FileNotFoundError:
+            # os.replace already published the file; a missing temp path means cleanup is done.
             pass
 
 
@@ -289,7 +289,7 @@ async def startup():
         set_graph(_graph)
 
     # Initialize short-term memory
-    stm = get_stm()
+    get_stm()
     print(f"  Model: {_graph._model_name}")
     print(f"  Short-term memory: enabled (recency + working memory + conversation)")
 
@@ -673,6 +673,7 @@ async def api_reset():
                 try:
                     os.remove(os.path.join(data_dir, filename))
                 except FileNotFoundError:
+                    # Snapshot was never written; reset already has the file absent.
                     pass
     return {"ok": True, "nodes": 0}
 
@@ -755,6 +756,7 @@ async def api_recall(req: RecallRequest):
             node_ids = [m.get("id", "") for m in result["memories"] if m.get("id")]
             _graph.recall_tracker.log_recall(req.query, node_ids)
         except Exception:
+            # Recall already succeeded; a learning-log failure must not change the response.
             pass
     return result
 
