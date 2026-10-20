@@ -623,7 +623,6 @@ def temporal_answer(
     """
     Answer temporal/numeric questions using extracted temporal entities.
     """
-    import re
     from datetime import datetime, timedelta
     
     # Step 1: Recall
@@ -665,7 +664,7 @@ def temporal_answer(
             age_val = ages[0]["value"]
             date_val = dates[0]["value"]
             try:
-                event_date = datetime.strptime(date_val, "%Y-%m-%d")
+                datetime.strptime(date_val, "%Y-%m-%d")
                 return {
                     "ok": True,
                     "answer": f"{subject.title()} is currently {age_val}. The event is on {date_val}. She will be {age_val} at that time unless her birthday passes between now and then.",
@@ -686,7 +685,6 @@ def temporal_answer(
     if re.search(r'(how many|what is the total|total|sum|combined|add up)', q):
         # Find quantities in recalled memories
         quantities = [t for t in all_temporal if t["type"] == "quantity"]
-        durations = [t for t in all_temporal if t["type"] == "duration"]
         
         if quantities and len(quantities) >= 2:
             # Try to sum same-label quantities

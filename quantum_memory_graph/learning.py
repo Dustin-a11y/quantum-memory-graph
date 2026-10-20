@@ -4,7 +4,7 @@ Learns from recall patterns: edges between frequently co-recalled memories get s
 """
 import itertools
 from collections import defaultdict
-from typing import List, Set, Dict, Tuple
+from typing import List, Dict, Tuple
 import json
 import os
 
