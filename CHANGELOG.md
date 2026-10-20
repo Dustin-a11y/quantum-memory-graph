@@ -39,6 +39,24 @@
   per position. 50k digits: 115s -> 0.12s. Output on 2,000 real memories is
   byte-identical, and `tests/test_temporal_extraction_redos.py` pins both the
   timing and the unchanged extraction results.
+- Security: stop exposing internal exception text to API callers. Four sites
+  returned `HTTPException(detail=str(exc))` — `POST /semantic/store` (fact
+  preparation and the provenance refusal) and `POST /semantic/recall`
+  (subject/relation and timestamp validation) — which echoed the raw exception
+  message to external callers (CodeQL medium, "stack trace information exposed
+  to an external user"). Each now logs the full traceback server-side with
+  `logger.exception(...)` and returns a generic but still useful reason
+  (`invalid semantic fact payload`, `typed semantic write refused: provenance
+  conflict`, `invalid subject_id or relation_type`, `invalid observed_as_of or
+  valid_at timestamp`). Status codes and `from exc` chaining are unchanged.
+- Fix: remove the dead source-node API surface. `POST /source`,
+  `GET /source/{source_id}/graph`, `GET /sources` and the `SourceRequest` model
+  are gone. `MemoryGraph` has no `add_source`, `sources`, `list_sources` or
+  `get_source_memories` in the current package or the previous generation, so
+  every call to those routes raised `AttributeError`; a debug-only surface that
+  cannot work is a liability, not an API. They now return 404 like any other
+  unknown path. `tests/test_api_error_hygiene.py` (9 tests) pins the removed
+  routes, the module-level symbol removal and the error-hygiene behaviour.
 - Note: units running with a `QMG_MODEL` override still fail their startup pair
   check on an untouched legacy pair, because the validator inspects the raw
   pickle before `load()` can strip anything. Those pairs need an explicit
