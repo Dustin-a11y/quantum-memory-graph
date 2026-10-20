@@ -435,13 +435,18 @@ def recall(
         "ok": True,
         "memories": selected_memories,
         "method": "qaoa_subgraph",
+        # The real selection path. "qaoa_subgraph" above is historical and was
+        # returned even when the optimiser raised and greedy ran instead, which
+        # made PCE failures invisible in production.
+        "selection_method": result.get("method", "unknown"),
         "candidates": len(candidate_ids),
         "K": K,
         "qaoa_score": result["score"],
         "greedy_score": result.get("greedy", {}).get("score"),
         "optimal_score": result.get("optimal", {}).get("score"),
         "qaoa_vs_optimal_pct": round(float(qaoa_vs_optimal), 2) if result.get("optimal") else None,
-        "qaoa_vs_greedy_pct": round(float(qaoa_vs_greedy), 2) if result.get("greedy") else None,
+        "qaoa_vs_greedy_pct": (round(float(qaoa_vs_greedy), 2)
+                               if result.get("qaoa") and result.get("greedy") else None),
         "tier_counts": {
             "warm": sum(1 for m in selected_memories if m["tier"] == "warm"),
             "cold": sum(1 for m in selected_memories if m["tier"] == "cold"),

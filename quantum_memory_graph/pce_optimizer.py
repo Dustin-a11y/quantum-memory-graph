@@ -254,7 +254,7 @@ def optimize_subgraph_pce(
         for b in beta_vals:
             qc = _build_pce_qaoa_circuit(
                 n_qubits, rel_qubit, adj_qubit,
-                g, b, alpha, beta_conn, gamma_cov, p_layers
+                g, b, alpha, beta_conn, gamma_cov, p_layers, K
             )
             
             result = simulator.run(qc, shots=shots).result()
@@ -318,7 +318,7 @@ def optimize_subgraph_pce(
 
 def _build_pce_qaoa_circuit(
     n, relevance, adjacency, gamma, beta,
-    alpha, beta_conn, gamma_cov, p_layers
+    alpha, beta_conn, gamma_cov, p_layers, K: int
 ):
     """Build QAOA circuit with PCE-scaled dimensions (n qubits for m candidates)."""
     qc = QuantumCircuit(n)
