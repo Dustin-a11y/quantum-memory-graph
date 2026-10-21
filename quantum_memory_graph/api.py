@@ -10,7 +10,6 @@ import asyncio
 import ipaddress
 import os
 import json
-import hashlib
 import logging
 import math
 import re
@@ -60,23 +59,6 @@ class RateLimiter:
 
 # Global rate limiter instance
 rate_limiter = RateLimiter(max_requests=100, window_seconds=60)
-
-# Simple request counter for basic DoS protection
-import threading
-_store_counter = 0
-_store_lock = threading.Lock()
-_store_window_start = time.time()
-
-def check_rate_limit():
-    global _store_counter, _store_window_start
-    with _store_lock:
-        now = time.time()
-        if now - _store_window_start > 60:
-            _store_counter = 0
-            _store_window_start = now
-        _store_counter += 1
-        if _store_counter > 100:
-            raise HTTPException(status_code=429, detail="Rate limit exceeded")
 
 QMG_MODEL = os.environ.get("QMG_MODEL", None)  # e.g. thenlper/gte-large
 
@@ -775,8 +757,9 @@ async def api_learn():
             "scored_memories": len(mem_scores),
             "top_edges": {f"{a[:8]}↔{b[:8]}": round(w, 3) for (a,b), w in sorted(weights.items(), key=lambda x: x[1], reverse=True)[:10] if w > 0},
         }
-    except Exception as e:
-        return {"ok": False, "error": str(e)}
+    except Exception:
+        logger.exception("learn failed while updating learned edge weights")
+        return {"ok": False, "error": "learning failed"}
 
 
 @app.get("/scores")
@@ -793,8 +776,9 @@ async def api_memory_scores():
             "top": [{"id": mid[:8], "score": round(s, 3)} for mid, s in top],
             "zero_score_count": sum(1 for v in scores.values() if v == 0),
         }
-    except Exception as e:
-        return {"ok": False, "error": str(e)}
+    except Exception:
+        logger.exception("score computation failed")
+        return {"ok": False, "error": "scores unavailable"}
 
 
 _TRACKER_DATA_DIR = None
@@ -960,9 +944,10 @@ async def api_merge_duplicates(req: MergeDuplicatesRequest):
         try:
             _persist_current_graph()
             result["persisted"] = True
-        except Exception as e:
+        except Exception:
+            logger.exception("failed to persist graph after merge-duplicates")
             result["persisted"] = False
-            result["persist_error"] = str(e)
+            result["persist_error"] = "persist failed; see server logs"
     return result
 
 
@@ -1028,9 +1013,10 @@ async def api_delete_by_source(req: DeleteBySourceRequest):
         try:
             _persist_current_graph()
             result["persisted"] = True
-        except Exception as e:
+        except Exception:
+            logger.exception("failed to persist graph after delete-by-source")
             result["persisted"] = False
-            result["persist_error"] = str(e)
+            result["persist_error"] = "persist failed; see server logs"
     return result
 
 

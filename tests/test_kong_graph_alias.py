@@ -11,12 +11,14 @@ import pytest
 
 
 def test_package_aliases_the_same_module():
-    import kong_graph
-    import quantum_memory_graph
+    import importlib
 
-    assert kong_graph.__version__ == quantum_memory_graph.__version__
-    assert kong_graph.__all__ == list(quantum_memory_graph.__all__)
-    assert kong_graph.MemoryGraph is quantum_memory_graph.MemoryGraph
+    alias = importlib.import_module("kong_graph")
+    real = importlib.import_module("quantum_memory_graph")
+
+    assert alias.__version__ == real.__version__
+    assert alias.__all__ == list(real.__all__)
+    assert alias.MemoryGraph is real.MemoryGraph
 
 
 def test_submodule_import_resolves_to_the_same_object():
@@ -62,11 +64,13 @@ def test_importing_the_alias_does_not_eagerly_import_optional_extras():
 
 
 def test_object_created_through_the_alias_is_the_real_class():
-    import kong_graph
-    import quantum_memory_graph
+    import importlib
 
-    g = kong_graph.MemoryGraph()
-    assert isinstance(g, quantum_memory_graph.MemoryGraph)
+    alias = importlib.import_module("kong_graph")
+    real = importlib.import_module("quantum_memory_graph")
+
+    g = alias.MemoryGraph()
+    assert isinstance(g, real.MemoryGraph)
 
     g.add_memory("The Kong Graph alias must not fork the class hierarchy.",
                  source="alias-test")

@@ -662,7 +662,7 @@ class MemoryGraph:
                 try:
                     iso = fmt(match)
                     temporal.append({"type": "date", "value": iso, "text": match.group(0)})
-                except:
+                except Exception:
                     # A malformed date token is skipped; other temporal entities are still kept.
                     pass
 
@@ -688,7 +688,7 @@ class MemoryGraph:
             if any(u in label.lower() for u in ['plant', 'page', 'cost', 'price', '$', 'dollar', 'gpa', 'novel']):
                 try:
                     temporal.append({"type": "quantity", "value": float(num_str), "label": label, "text": m.group(0)})
-                except:
+                except Exception:
                     # An unparseable quantity is skipped so the rest of extraction continues.
                     pass
 
@@ -899,8 +899,7 @@ class MemoryGraph:
             if any(key in obj for key in (
                     'semantic_store', 'semantic_facts', 'semantic_schema_version')):
                 raise ValueError("legacy dict pickle contains typed state; refusing data loss")
-            from .graph import MemoryGraph as MG
-            g = MG(similarity_threshold=0.3, model=model)
+            g = MemoryGraph(similarity_threshold=0.3, model=model)
             g.graph = obj['G']
             g.memories = obj['memories']
             g._rebuild_indices()

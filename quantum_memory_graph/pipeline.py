@@ -8,6 +8,7 @@ This is what users interact with:
 Copyright 2026 Coinkong (Chef's Attraction). MIT License.
 """
 
+import logging
 import numpy as np
 import re
 from typing import List, Dict, Optional
@@ -16,6 +17,8 @@ from datetime import datetime
 from .graph import MemoryGraph, Memory
 from .subgraph_optimizer import optimize_subgraph as _std_optimize_subgraph
 from .recency import ShortTermMemory
+
+logger = logging.getLogger(__name__)
 
 
 # Module-level default graph instance
@@ -658,14 +661,18 @@ ANSWER:"""
         }
     
     except Exception as e:
-        # Fallback to heuristic — error message sanitized to prevent leak
+        # Fallback to heuristic. The sanitized reason is logged server-side
+        # only: exception-derived text must not reach the response body
+        # (CodeQL py/stack-trace-exposure).
+        logger.warning("LLM answer synthesis failed; falling back to top memory: %s",
+                       _sanitize_error(str(e)))
         top_mem = memories[0]["text"]
         return {
             "ok": True,
             "answer": top_mem,
             "sources": sources,
             "confidence": memories[0].get("relevance", 0),
-            "method": f"llm_failed: {_sanitize_error(str(e))}",
+            "method": "llm_failed",
         }
 
 
@@ -725,7 +732,7 @@ def temporal_answer(
                     "confidence": 0.7,
                     "method": "temporal_age",
                 }
-            except:
+            except Exception:
                 pass
         if ages:
             return {
