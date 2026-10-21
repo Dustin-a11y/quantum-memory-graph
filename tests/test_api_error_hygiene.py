@@ -167,3 +167,122 @@ def test_no_exception_interpolation_in_http_error_details():
     ]
     assert offenders == [], offenders
     assert "detail=str(" not in API_FILE.read_text(encoding="utf-8")
+
+
+# ── 3. remaining exception-text sinks ──────────────────────────────
+
+
+def test_learn_error_path_hides_exception_text(client, monkeypatch):
+    class Boom:
+        def learn(self, min_co_recalls=1):
+            raise RuntimeError(f"{SENTINEL}: learn exploded")
+
+    monkeypatch.setattr(api_module, "_graph", Boom())
+
+    response = client.post("/learn")
+
+    assert response.status_code == 200, response.text
+    body = response.json()
+    assert body["ok"] is False
+    assert body["error"] == "learning failed"
+    assert SENTINEL not in response.text
+    assert "RuntimeError" not in response.text
+
+
+def test_scores_error_path_hides_exception_text(client, monkeypatch):
+    class Boom:
+        def get_memory_scores(self):
+            raise RuntimeError(f"{SENTINEL}: scores exploded")
+
+    monkeypatch.setattr(api_module, "_graph", Boom())
+
+    response = client.get("/scores")
+
+    assert response.status_code == 200, response.text
+    body = response.json()
+    assert body["ok"] is False
+    assert body["error"] == "scores unavailable"
+    assert SENTINEL not in response.text
+    assert "RuntimeError" not in response.text
+
+
+def _fake_graph():
+    """A minimal graph stub: two duplicate memories, no embedding model."""
+    import numpy as np
+    from types import SimpleNamespace
+
+    class FakeGraph:
+        def __init__(self):
+            self.memories = {
+                "m1": SimpleNamespace(embedding=np.array([1.0, 0.0])),
+                "m2": SimpleNamespace(embedding=np.array([1.0, 0.0])),
+            }
+
+        def merge_clusters(self, clusters, dry_run=False):
+            return {"ok": True, "clusters_merged": len(clusters), "memories_merged": 2}
+
+        def delete_by_source(self, sources, dry_run=False):
+            return {"ok": True, "matched": 1, "removed": 1, "dry_run": dry_run}
+
+    return FakeGraph()
+
+
+def test_merge_duplicates_persist_failure_hides_exception_text(client, monkeypatch):
+    monkeypatch.setattr(api_module, "get_graph", _fake_graph)
+
+    def boom():
+        raise RuntimeError(f"{SENTINEL}: disk full")
+
+    monkeypatch.setattr(api_module, "_persist_current_graph", boom)
+
+    response = client.post("/merge-duplicates", json={"threshold": 0.9})
+
+    assert response.status_code == 200, response.text
+    body = response.json()
+    assert body["persisted"] is False
+    assert body["persist_error"] == "persist failed; see server logs"
+    assert SENTINEL not in response.text
+    assert "RuntimeError" not in response.text
+
+
+def test_delete_by_source_persist_failure_hides_exception_text(client, monkeypatch):
+    monkeypatch.setattr(api_module, "get_graph", _fake_graph)
+
+    def boom():
+        raise RuntimeError(f"{SENTINEL}: disk full")
+
+    monkeypatch.setattr(api_module, "_persist_current_graph", boom)
+
+    response = client.post(
+        "/delete-by-source",
+        json={"sources": ["test-source"], "dry_run": False},
+    )
+
+    assert response.status_code == 200, response.text
+    body = response.json()
+    assert body["persisted"] is False
+    assert body["persist_error"] == "persist failed; see server logs"
+    assert SENTINEL not in response.text
+    assert "RuntimeError" not in response.text
+
+
+def test_answer_llm_failure_does_not_expose_exception_text(monkeypatch):
+    import json
+
+    from quantum_memory_graph import pipeline as pipeline_module
+
+    def fake_recall(query, K=5, graph=None):
+        return {"memories": [{"text": "memory one", "relevance": 0.9}]}
+
+    def boom(*args, **kwargs):
+        raise RuntimeError(f"{SENTINEL}: llm exploded")
+
+    monkeypatch.setattr(pipeline_module, "recall", fake_recall)
+    monkeypatch.setattr("urllib.request.urlopen", boom)
+    monkeypatch.setenv("OPENROUTER_API_KEY", "test-key-not-real")
+
+    result = pipeline_module.answer("what is x?", K=1)
+
+    assert result["method"] == "llm_failed"
+    assert SENTINEL not in json.dumps(result)
+    assert "RuntimeError" not in json.dumps(result)

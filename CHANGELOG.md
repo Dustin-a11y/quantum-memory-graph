@@ -85,6 +85,22 @@
   check on an untouched legacy pair, because the validator inspects the raw
   pickle before `load()` can strip anything. Those pairs need an explicit
   cold-bootstrap conversion.
+- Security: stop returning exception text from the last five API paths that
+  still echoed it — `POST /learn` and `GET /scores` (raw `str(exc)` in the
+  `error` field), `POST /merge-duplicates` and `POST /delete-by-source` (raw
+  `str(exc)` in `persist_error`), and `POST /answer` (a sanitized but still
+  exception-derived `llm_failed: ...` method string). Each now logs
+  server-side and returns a fixed reason (`learning failed`,
+  `scores unavailable`, `persist failed; see server logs`, `llm_failed`).
+  Closes the remaining CodeQL `py/stack-trace-exposure` findings; every path
+  is pinned in `tests/test_api_error_hygiene.py`.
+- Chore: remove the never-wired `check_rate_limit` helper and its module
+  globals (`_store_counter`, `_store_lock`, `_store_window_start`); no route
+  or module referenced them (`RateLimiter` and its instance are untouched).
+  `MemoryGraph.load()` drops its self-import, `_extract_temporal_entities`
+  and `temporal_answer` catch `Exception` instead of bare `except:`, `api.py`
+  loses an unused `hashlib` import, and `tests/test_kong_graph_alias.py` uses
+  `importlib` consistently. Clears the remaining mechanical CodeQL findings.
 
 ## 1.2.1 (2026-05-31)
 - Add synergy reranker: word-overlap synergy + diversity selection
