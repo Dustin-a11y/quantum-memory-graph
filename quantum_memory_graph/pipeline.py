@@ -9,6 +9,7 @@ Copyright 2026 Coinkong (Chef's Attraction). MIT License.
 """
 
 import logging
+import os
 import numpy as np
 import re
 from typing import List, Dict, Optional
