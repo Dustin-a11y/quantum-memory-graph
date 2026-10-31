@@ -292,7 +292,10 @@ def recall(
     max_candidates: int = 14,
     use_recency: bool = True,
     stm: ShortTermMemory = None,
-    method: str = "qaoa",
+    method: str = None,  # None -> $QMG_RECALL_METHOD, default "greedy" (classical).
+    # QAOA/CVaR stay reachable (method="qaoa"/"pce" or QMG_RECALL_METHOD) but are no
+    # longer what a plain /recall runs: the simulator cost ~8x a classical selector and
+    # ranked by graph structure, so its relevance numbers could not be trusted.
     text_weight: float = 0.3,
     relevance_anchor: int = 1,
 ) -> Dict:
@@ -321,6 +324,9 @@ def recall(
     Returns:
         Dict with selected memories, scores, method details
     """
+    # Selector is a deployment decision, not a constant: the classical greedy selector is the
+    # default, QMG_RECALL_METHOD=qaoa|pce|synergy opts into the quantum-era paths.
+    method = (method or os.environ.get("QMG_RECALL_METHOD") or "greedy").strip().lower()
     g = graph or get_graph()
 
     temporal_signals = {

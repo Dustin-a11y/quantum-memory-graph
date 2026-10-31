@@ -44,6 +44,7 @@ import ctypes
 import errno
 import hashlib
 import json
+import logging
 import os
 import pickle
 import re
@@ -349,12 +350,13 @@ def _load_pair_checked(dirpath: str, label: str, *, model: str = None):
             # a mismatched model cannot be vouched for by a v2 pair receipt.
             raise ValueError(f"{label}: persisted model does not match unit model")
         if model and original._embedder is not None:
-            # MemoryGraph.load(model=...) clears a persisted embedder cache
-            # before any attestation could see it. Refuse the supported
-            # override rather than silently discard unverifiable state.
-            raise ValueError(
-                f"{label}: unverified persisted embedder cache under a model "
-                "override; refusing")
+            # Legacy pair from a release that pickled the encoder cache. MemoryGraph.load clears it
+            # anyway (the cache rebuilds lazily from _model_name), so clean it instead of refusing:
+            # an old pair must stay restartable. The model-match check above still guarantees we
+            # never silently rebind a different encoder.
+            logging.getLogger(__name__).warning(
+                "%s: discarding persisted embedder cache (legacy pair); it rebuilds lazily", label)
+            original._embedder = None
     else:
         raise ValueError(f"{label}: unsupported pickle format")
     graph = MemoryGraph.load(os.path.join(d, "graph.pkl"), model=model)
