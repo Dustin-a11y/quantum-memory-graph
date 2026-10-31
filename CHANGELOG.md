@@ -1,6 +1,17 @@
 # Changelog
 
 ## 1.3.0 (2026-10-19)
+- Fix: `recall()` now defaults to the **classical greedy selector**; `QMG_RECALL_METHOD=qaoa|pce`
+  opts into the QAOA/CVaR paths (or pass an explicit `method=`). The simulator cost
+  ~8x a classical selector and ranked by graph structure, so its relevance could not
+  be trusted as a silent default. This matches the deployed durable release.
+- Fix: saved graph pairs no longer carry a live encoder cache -
+  `MemoryGraph.__getstate__` drops `_embedder` before pickling (it rebuilds lazily
+  from `_model_name`), so a pair written by the service stays loadable across
+  model-override restarts instead of tripping the strict startup pair check.
+- Fix: `rollback._load_pair_checked` cleans a legacy persisted encoder cache
+  (warning; the cache rebuilds lazily) instead of refusing the pair. The
+  model-mismatch guard is unchanged and still refuses a genuinely different model.
 - Fix: recall no longer discards the most relevant memory. The subgraph
   objective mixes relevance with connectivity and coverage, so a well-connected
   cluster could outvote the single most relevant memory and drop the answer

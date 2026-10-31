@@ -862,6 +862,18 @@ class MemoryGraph:
                           max(self.graph.number_of_nodes(), 1)),
         }
 
+    def __getstate__(self):
+        """Persist without the encoder cache.
+
+        A pickled SentenceTransformer made every saved pair non-portable: the strict startup pair
+        check refuses a pair carrying a live `_embedder` under a model override, and the service
+        re-pickled the cache on its next save, so a manual clear decayed within hours. The cache is
+        rebuilt lazily from `_model_name`, so it never belongs in a snapshot.
+        """
+        state = dict(vars(self))
+        state['_embedder'] = None
+        return state
+
     def save(self, path: str):
         """Persist graph to disk as pickle."""
         with open(path, 'wb') as f:
