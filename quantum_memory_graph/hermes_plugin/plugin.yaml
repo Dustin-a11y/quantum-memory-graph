@@ -1,0 +1,7 @@
+name: qmg
+version: 1.0.0
+description: Quantum Memory Graph — automatic turn-level memory sync with smart filtering
+author: DK
+provider_type: memory
+entry_point: __init__.py
+config_schema: config_schema.py
