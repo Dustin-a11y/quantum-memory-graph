@@ -1,6 +1,6 @@
 """QMG Memory Provider configuration schema."""
 
-from .config_schema import (
+from plugins.memory.config_schema import (
     ProviderConfigSchema,
     ProviderField,
     KIND_TEXT,

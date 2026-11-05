@@ -9,9 +9,7 @@ appears it must be labelled as superseded.
 Cleans up after itself: every probe memory is deleted by id through /delete-by-ids.
 """
 import json
-import os
 import subprocess
-import sys
 import urllib.request
 
 CONFIG = '/home/dt/.hermes/profiles/dk/qmg-memory/config.json'
@@ -19,7 +17,8 @@ HERMES_PY = '/home/dt/.hermes/hermes-agent/venv/bin/python'
 SUBJECT = 'the probe rack'
 FACTS = ['%s is located in Seattle.' % SUBJECT, '%s is located in Austin.' % SUBJECT]
 
-_PROVIDER_CONFIG = json.load(open(CONFIG))
+with open(CONFIG) as handle:
+    _PROVIDER_CONFIG = json.load(handle)
 URL = _PROVIDER_CONFIG['qmg_url']
 
 

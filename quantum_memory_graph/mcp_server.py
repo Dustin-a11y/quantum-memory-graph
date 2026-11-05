@@ -16,7 +16,6 @@ import json
 import sys
 import requests
 import os
-import subprocess
 from urllib3.util.retry import Retry
 
 def _env(name: str, default: str = "") -> str:
@@ -58,7 +57,7 @@ def _call(method: str, url: str, path: str, token: str = QMG_TOKEN, **kwargs) ->
         if r.status_code == 200:
             return r.json()
     except (requests.ConnectionError, requests.Timeout):
-        pass
+        pass  # unreachable graph — the caller reports the outage from the None return
     return None
 
 def store(text: str, source: str = AGENT) -> dict:
@@ -69,14 +68,14 @@ def store(text: str, source: str = AGENT) -> dict:
         if not _enabled(BENCHD, BENCHD_TOKEN):
             raise RuntimeError("benchd not configured")
         _call("POST", BENCHD, "/store", token=BENCHD_TOKEN, json={"text": text, "source": source})
-    except:
+    except Exception:
         pass  # Never block on benchd write
     # Fire-and-forget to Mega Brain with agent tag
     try:
         if not _enabled(MEGABRAIN, MEGABRAIN_TOKEN):
             raise RuntimeError("mega brain not configured")
         _call("POST", MEGABRAIN, "/store", token=MEGABRAIN_TOKEN, json={"text": f"[{AGENT}] {text}", "source": f"{AGENT}-{source}"})
-    except:
+    except Exception:
         pass  # Never block on mega brain write
     if result:
         return result
@@ -91,8 +90,6 @@ def recall(query: str, k: int = 5) -> dict:
     when search is empty (a structurally-adjacent memory still beats nothing). Every returned
     memory carries `relevance` = the similarity actually measured, so a weak hit looks weak.
     """
-    s = get_session()
-
     memories = []
     try:
         searched = _call("POST", PERSONAL, "/search",
@@ -157,14 +154,14 @@ def stats() -> dict:
         r = s.get(f"{PERSONAL}/stats", timeout=10, headers={"Authorization": f"Bearer {QMG_TOKEN}"})
         if r.status_code == 200:
             return r.json()
-    except:
-        pass
+    except Exception:
+        pass  # personal graph unreachable — fall through to the historical one
     try:
         r = s.get(f"{HISTORICAL}/stats", timeout=10, headers={"Authorization": f"Bearer {HISTORICAL_TOKEN}"})
         if r.status_code == 200:
             return r.json()
-    except:
-        pass
+    except Exception:
+        pass  # historical unreachable too — report an empty graph
     return {"nodes": 0, "edges": 0}
 
 # ─── Source API functions ────────────────────────────────────────
@@ -178,8 +175,8 @@ def add_source(source_type: str, url: str = "", title: str = "", content: str = 
         }, timeout=10, headers={"Authorization": f"Bearer {QMG_TOKEN}"})
         if r.status_code == 200:
             return r.json()
-    except:
-        pass
+    except Exception:
+        pass  # graph unreachable — the caller gets the error dict
     return {"error": "Kong Graph unavailable"}
 
 def list_sources() -> dict:
@@ -189,8 +186,8 @@ def list_sources() -> dict:
         r = s.get(f"{PERSONAL}/sources", timeout=10, headers={"Authorization": f"Bearer {QMG_TOKEN}"})
         if r.status_code == 200:
             return r.json()
-    except:
-        pass
+    except Exception:
+        pass  # graph unreachable — the caller gets an empty list
     return {"ok": False, "sources": []}
 
 def source_graph(source_id: str) -> dict:
@@ -200,8 +197,8 @@ def source_graph(source_id: str) -> dict:
         r = s.get(f"{PERSONAL}/source/{source_id}/graph", timeout=10, headers={"Authorization": f"Bearer {QMG_TOKEN}"})
         if r.status_code == 200:
             return r.json()
-    except:
-        pass
+    except Exception:
+        pass  # graph unreachable — the caller gets the error dict
     return {"error": "Kong Graph unavailable"}
 
 def full_graph() -> dict:
@@ -211,8 +208,8 @@ def full_graph() -> dict:
         r = s.get(f"{PERSONAL}/graph", timeout=15, headers={"Authorization": f"Bearer {QMG_TOKEN}"})
         if r.status_code == 200:
             return r.json()
-    except:
-        pass
+    except Exception:
+        pass  # graph unreachable — the caller gets an empty graph
     return {"ok": False, "nodes": [], "edges": []}
 
 def make_result(data: dict) -> dict:

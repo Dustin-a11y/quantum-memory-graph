@@ -178,7 +178,8 @@ def _load_nous_key():
     """Read current Nous agent_key from the profile auth.json (Hermes rotates hourly)."""
     try:
         auth_path = os.path.join(get_hermes_home(), 'auth.json')
-        d = json.load(open(auth_path))
+        with open(auth_path) as handle:
+            d = json.load(handle)
         return d['providers']['nous']['agent_key']
     except Exception:
         return None
@@ -388,6 +389,7 @@ class QMGMemoryProvider(MemoryProvider):
                         lines.append(f"- {text}")
                     return "\n".join(lines)
         except Exception:
+            # best-effort recall block: an unreachable graph must not block the turn
             pass
         
         return ""
@@ -533,6 +535,7 @@ class QMGMemoryProvider(MemoryProvider):
                     timeout=5,
                 )
             except Exception:
+                # one failed store must not drop the remaining session facts
                 pass
         
         logger.info("QMG on_session_end: stored %d facts", len(unique_facts[:10]))

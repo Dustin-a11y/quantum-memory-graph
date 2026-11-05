@@ -166,7 +166,7 @@ def run_case(family, question, expected, store, verbose=False, want_resolution=F
         return base_hit, aware_hit, bool(resolution_ok)
     if verbose and not resolution_ok:
         print('      resolve  : %s' % (resolved_value or '(unmatched)'))
-    return base_hit, aware_hit
+    return base_hit, aware_hit, bool(resolution_ok)
 
 
 def main():
