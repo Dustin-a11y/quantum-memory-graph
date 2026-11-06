@@ -23,7 +23,7 @@ using it today with no migration and no data loss.
 from __future__ import annotations
 
 import re
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Dict, List, Optional, Tuple
 
@@ -48,6 +48,35 @@ _COPULA = re.compile(
     r"^(?P<subject>[A-Za-z][^,.!?]{0,60}?)\s+(?:is|was|are|were)\s+(?:now\s+|still\s+)?"
     r"(?P<attribute>[a-z][a-z\-]{2,20}(?:\s+[a-z][a-z\-]{2,20})?)\s+"
     r"(?:in|at|to|on|from|with)\s+(?P<value>.+?)\.?$")
+
+# "SOL-PERP SL is 95.520." / "leverage is 0.92x." / "the port is 8503." -> ledger and metric state.
+# Only a digit-led value qualifies, and only for a real noun-phrase subject: prose cannot start its
+# value with a number, so this cannot turn narration into a claim that would supersede a fact.
+_STATUS = re.compile(
+    r"^(?P<subject>[A-Za-z][^,.!?]{0,60}?)\s+(?:is|are|was|were)\s+(?:now\s+|currently\s+|still\s+)?"
+    r"(?P<value>[+\-]?[$€£]?\d[^!?]{0,38})$")
+
+# "the mail server is now Postfix." / "the scheduler is currently cron." -> an explicit state cue
+_NOW_STATE = re.compile(
+    r"^(?P<subject>[A-Za-z][^,.!?]{0,60}?)\s+(?:is|are)\s+(?:now|currently)\s+"
+    r"(?P<value>[A-Za-z][^,.!?]{0,60}?)\.?$")
+
+# Copula forms whose attribute is implied by the verb, like _VERBAL above.
+_VERBAL_EXTRA = [
+    (re.compile(r"^(?P<subject>[A-Za-z][^,.!?]{0,60}?)\s+(?:now\s+)?runs? on\s+(?P<value>.+?)\.?$", re.I),
+     "runs on"),
+]
+
+# Subjects that carry no entity: "There are 0 open alerts" keys nothing anyone can ask about.
+_DUMMY_SUBJECTS = {"there", "it", "this", "that", "these", "those", "they", "we", "you", "i", "he", "she"}
+# Transcript prefixes look exactly like a state assertion but are just who spoke.
+_SPEAKER_PREFIX = re.compile(r"^(?:dustin|assist|user|assistant|dk|agent|system)\b[\s:\-]", re.I)
+_LOCATION_IN_VALUE = re.compile(r"\b(?:in|at|on|to|from|into|onto)\b", re.I)
+# Words that start an instruction, not an entity: "keep your longer runs on the weekends" is advice,
+# not a claim about a thing. Without this the extras would key junk chains.
+_NOT_A_SUBJECT_START = {"keep", "use", "try", "see", "run", "check", "make", "set", "add", "read", "take",
+                        "note", "if", "when", "then", "and", "but", "so", "do", "don", "don't", "let",
+                        "remember", "consider", "ensure", "avoid", "always", "never", "please", "pick"}
 
 CURRENT_CUES = ("now", "currently", "current", "latest", "most recent", "these days", "today",
                 "still", "at the moment", "right now", "as of")
@@ -118,13 +147,63 @@ def parse_claim(text: str, memory_id: str = "", when: Optional[datetime] = None,
                 subject, attribute, value = m.group("subject"), implied, m.group("value")
                 break
         if subject is None:
-            return None
+            # extras only, and only when the subject is a real entity — "keep your longer runs on the
+            # weekends" is advice, and keying it would invent a chain that never existed
+            for pattern, implied in _VERBAL_EXTRA:
+                m = pattern.match(body)
+                if m and _is_entity(m.group("subject")):
+                    subject, attribute, value = m.group("subject"), implied, m.group("value")
+                    break
+        if subject is None:
+            # Newer shapes are tried LAST so every claim that parsed before still parses identically.
+            subject, attribute, value = _parse_state_extras(body)
+            if subject is None:
+                return None
     subject, attribute, value = _norm(subject), _norm(attribute), (value or "").strip(" .")
     if not subject or not attribute or not value:
         return None
     return Claim(subject=subject, attribute=attribute, value=value, when=when,
                  memory_id=memory_id, text=body, source=source,
                  valid_from=when)
+
+
+def _parse_state_extras(body: str) -> Tuple[Optional[str], Optional[str], Optional[str]]:
+    """Digit-led metric state, "is now X", and "runs on X" — the three shapes real memories use.
+
+    Kept separate and strictly guarded because a wrong claim supersedes a right one: narration has to
+    survive as narration. Anything that smells like a speaker line, a dummy subject, or a value that
+    is really a place stays unparsed.
+    """
+    if _SPEAKER_PREFIX.match(body):
+        return None, None, None
+    m = _NOW_STATE.match(body)
+    if m:
+        subject, value = m.group("subject"), m.group("value")
+        if not _is_entity(subject) or _LOCATION_IN_VALUE.search(value) or len(value.split()) > 5:
+            return None, None, None
+        return subject, "state", value
+    m = _STATUS.match(body)
+    if m:
+        subject, value = m.group("subject"), m.group("value")
+        if not _is_entity(subject) or _LOCATION_IN_VALUE.search(value):
+            return None, None, None
+        return subject, "value", value
+    return None, None, None
+
+
+def _is_entity(subject: str) -> bool:
+    """A subject worth keying a chain on: a short noun phrase, not a pronoun or an instruction."""
+    subject = _norm(subject)
+    if not subject or any(ch in subject for ch in "()[]/\\") or ":" in subject:
+        return False
+    words = subject.split()
+    if not words or len(words) > 6:
+        return False
+    first = words[0].lower()
+    if first in _DUMMY_SUBJECTS or first in _NOT_A_SUBJECT_START:
+        return False
+    # either a capitalised name, or a bare token that reads like an identifier (port, ufw, sol-perp)
+    return words[0][0].isupper() or bool(re.fullmatch(r"[a-z0-9][\w.\-]{1,20}", words[0]))
 
 
 class StateIndex:

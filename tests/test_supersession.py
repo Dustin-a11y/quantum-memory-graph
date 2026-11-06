@@ -136,3 +136,59 @@ def test_no_state_change_means_no_interference():
     index = StateIndex.from_graph(graph)
     top = state_aware_search("Where is the zeta unit 0 located now?", graph, k=3, index=index)[0]
     assert top.get("source") != "supersession-resolution"
+
+
+class TestNewStateShapes:
+    """The three extra shapes, plus the sentences that must keep returning None.
+
+    A false claim can mark a real fact stale, so every accepted shape is paired with a near-miss that
+    has to stay unparsed. If one of those starts parsing, this file fails before production does.
+    """
+
+    def test_digit_led_metric_state(self):
+        for text, subject, value in (
+            ("SOL-PERP SL is 95.520.", "sol-perp sl", "95.520"),
+            ("leverage is 0.92x.", "leverage", "0.92x"),
+            ("Pair net was +$37.80.", "pair net", "+$37.80"),
+            ("the port is 8503.", "port", "8503"),
+        ):
+            claim = parse_claim(text)
+            assert claim is not None, text
+            assert (claim.subject, claim.attribute, claim.value) == (subject, "value", value)
+
+    def test_is_now_state_cue(self):
+        for text, subject, value in (
+            ("the mail server is now Postfix.", "mail server", "Postfix"),
+            ("the scheduler is currently cron.", "scheduler", "cron"),
+        ):
+            claim = parse_claim(text)
+            assert claim is not None, text
+            assert (claim.subject, claim.attribute, claim.value) == (subject, "state", value)
+
+    def test_runs_on(self):
+        claim = parse_claim("the app runs on Spark 2.")
+        assert claim is not None
+        assert (claim.subject, claim.attribute, claim.value) == ("app", "runs on", "Spark 2")
+
+    def test_near_misses_stay_unparsed(self):
+        for text in (
+            "Dustin asked what to do.",
+            "ASSIST noted the cache has 'Sweden' inline.",
+            "There are 0 open alerts.",
+            "keep your longer runs on the weekends.",
+            "Try checking the port is 8503.",
+            "the build is 3 stages in CI.",
+            "my code was reviewed and merged yesterday.",
+            "The Museum of Modern Art is an institution.",
+            "User got back from a guided tour at the museum on 8 January.",
+        ):
+            assert parse_claim(text) is None, text
+
+    def test_new_chain_supersedes_only_within_its_own_attribute(self):
+        # real memory ids are hex strings — an int id would not be found by is_superseded's lookup
+        claims = [parse_claim(t, memory_id=mid) for mid, t in
+                  zip(("aa1", "bb2"), ("leverage is 0.5x.", "leverage is 0.9x."))]
+        index = StateIndex(claims)
+        assert index.current("leverage", "value").value == "0.9x"
+        assert index.is_superseded(claims[0].memory_id)
+        assert not index.is_superseded(claims[1].memory_id)
