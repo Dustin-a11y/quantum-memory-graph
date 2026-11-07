@@ -200,7 +200,7 @@ class MemoryGraph:
             text=text,
             embedding=embedding,
             entities=entities,
-            timestamp=timestamp or datetime.now(),
+            timestamp=timestamp or datetime.utcnow(),
             source=source,
             metadata=metadata or {},
             temporal_entities=temporal,
@@ -254,7 +254,7 @@ class MemoryGraph:
 
             entities = (entities_list[i] if entities_list else
                        self._extract_entities(text))
-            timestamp = (timestamps[i] if timestamps else datetime.now())
+            timestamp = (timestamps[i] if timestamps else datetime.utcnow())
             if timestamp.tzinfo is not None:
                 timestamp = timestamp.astimezone(timezone.utc).replace(tzinfo=None)
             source = (sources[i] if sources else "")
@@ -391,7 +391,7 @@ class MemoryGraph:
         def _score(mid: str):
             mem = self.memories[mid]
             degree = self.graph.degree(mid) if self.graph.has_node(mid) else 0
-            ts = mem.timestamp or datetime.now()
+            ts = mem.timestamp or datetime.utcnow()
             return (degree, len(mem.text or ""), -ts.timestamp() if hasattr(ts, 'timestamp') else 0)
 
         survivor = max(present, key=_score)

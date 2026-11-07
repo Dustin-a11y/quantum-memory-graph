@@ -104,11 +104,6 @@ def store(
     # list order. Stamp at write time so new memories always carry evidence.
     if timestamp is None:
         timestamp = datetime.utcnow()
-    # A memory with no timestamp can never be placed in time afterwards, and every recall feature
-    # that depends on chronology (state resolution, time ranges, recency) silently degrades to
-    # list order. Stamp at write time so new memories always carry evidence.
-    if timestamp is None:
-        timestamp = datetime.utcnow()
     g = graph or get_graph()
     memory = g.add_memory(
         text=text, entities=entities, timestamp=timestamp,

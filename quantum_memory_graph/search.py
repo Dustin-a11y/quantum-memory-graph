@@ -8,9 +8,6 @@ from collections import defaultdict
 from datetime import datetime, timezone
 
 
-from datetime import datetime, timezone
-
-
 def tokenize(text: str) -> List[str]:
     """Extract meaningful tokens from text."""
     words = text.lower().split()
@@ -143,29 +140,16 @@ def hybrid_search(query: str, graph, k: int = 5, text_weight: float = 0.3, embed
             ts = ts.astimezone(timezone.utc).replace(tzinfo=None)
         ages.append(max(0.0, (now - ts).total_seconds() / 86400.0))
     if recency_weight:
-        bonus = np.array([
-            0.0 if age is None else recency_weight * float(np.exp(-age / 30.0))
+        # Multiplicative, because the combined score is not on a fixed scale: bm25_score is an
+        # unbounded IDF sum while the embedding term is normalised to <= 1, so an additive bonus of
+        # 0.1-0.2 is invisible whenever text dominates and only breaks exact ties (measured: 0
+        # genuine overtakes below w=1.0). A relative bonus of w * decay is meaningful on any scale
+        # and still leaves recency_weight=0 byte-identical.
+        decay = np.array([
+            0.0 if age is None else float(np.exp(-age / 30.0))
             for age in ages
         ])
-        combined = combined + bonus
-
-    # Optional recency bonus: bounded by recency_weight, decaying with a 30 day half-life-ish scale.
-    now = datetime.utcnow()
-    ages = []
-    for mid in mem_ids:
-        ts = getattr(graph.memories[mid], "timestamp", None)
-        if ts is None:
-            ages.append(None)
-            continue
-        if ts.tzinfo is not None:
-            ts = ts.astimezone(timezone.utc).replace(tzinfo=None)
-        ages.append(max(0.0, (now - ts).total_seconds() / 86400.0))
-    if recency_weight:
-        bonus = np.array([
-            0.0 if age is None else recency_weight * float(np.exp(-age / 30.0))
-            for age in ages
-        ])
-        combined = combined + bonus
+        combined = combined * (1.0 + recency_weight * decay)
     
     # Top K
     top_indices = np.argsort(combined)[::-1][:k]

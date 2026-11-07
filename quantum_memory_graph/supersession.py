@@ -23,7 +23,7 @@ using it today with no migration and no data loss.
 from __future__ import annotations
 
 import re
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Dict, List, Optional, Tuple
 
@@ -374,7 +374,6 @@ def state_aware_search(query: str, graph, k: int = 5, text_weight: float = 0.3,
         "id": target.get("memory_id"), "text": target.get("text") or _claim_sentence(resolved),
         "entities": [], "source": "supersession-resolution",
         "text_score": 0.0, "embed_score": 0.0, "combined_score": 1.0,
-        "timestamp": None, "age_days": None,
         "timestamp": None, "age_days": None,
         "state": index.annotate(target.get("memory_id") or ""),
         "why": "%s (%s) — %s" % (resolved["subject"], resolved["attribute"], resolved["intent"]),

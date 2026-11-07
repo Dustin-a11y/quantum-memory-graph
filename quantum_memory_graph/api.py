@@ -691,9 +691,6 @@ class SearchRequest(BaseModel):
     # Opt-in time behaviours. Defaults keep every existing caller byte-identical.
     time_range: Optional[Dict] = None
     recency_weight: float = 0.0
-    # Opt-in time behaviours. Defaults keep every existing caller byte-identical.
-    time_range: Optional[Dict] = None
-    recency_weight: float = 0.0
 
 
 @app.post("/search")

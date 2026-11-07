@@ -266,13 +266,16 @@ def MemoryGraphId(graph, text):
 # --------------------------------------------------------------------------- recency
 
 
+# Relative to now on purpose: the recency bonus decays with exp(-age_days/30), so fixed 2025 dates
+# would give every memory a decay of ~0 and the test would assert nothing about recency at all.
+_NOW = datetime.utcnow()
 RECENT = [
-    ("the sigma rollout step one reported.", datetime(2025, 1, 1, 0, 0, 0)),
-    ("the sigma rollout step two reported.", datetime(2025, 1, 8, 0, 0, 0)),
-    ("the sigma rollout step three reported.", datetime(2025, 1, 15, 0, 0, 0)),
-    ("the sigma rollout step four reported.", datetime(2025, 1, 22, 0, 0, 0)),
-    ("the sigma rollout step five reported.", datetime(2025, 1, 29, 0, 0, 0)),
-    ("the sigma rollout step six reported.", datetime(2025, 2, 5, 0, 0, 0)),
+    ("the sigma rollout step one reported.", _NOW - timedelta(days=300)),
+    ("the sigma rollout step two reported.", _NOW - timedelta(days=240)),
+    ("the sigma rollout step three reported.", _NOW - timedelta(days=180)),
+    ("the sigma rollout step four reported.", _NOW - timedelta(days=120)),
+    ("the sigma rollout step five reported.", _NOW - timedelta(days=60)),
+    ("the sigma rollout step six reported.", _NOW - timedelta(days=1)),
 ]
 
 
@@ -315,8 +318,10 @@ class TestRecencyWeight:
                                recency_weight=0.25)
         for r in boosted:
             base = legacy[r["id"]]
+            # multiplicative: the bonus is proportional, so it is bounded by (1 + weight) of the
+            # base score rather than by an absolute amount — the base is not on a fixed scale.
             assert r["combined_score"] >= base - 1e-9
-            assert r["combined_score"] <= base + 0.25 + 1e-6
+            assert r["combined_score"] <= base * (1.0 + 0.25) + 1e-6
 
     def test_results_carry_timestamp_and_age_days(self):
         boosted = hybrid_search("sigma rollout step reported", self.graph, k=6,
