@@ -340,7 +340,8 @@ class StateIndex:
 
 
 def state_aware_search(query: str, graph, k: int = 5, text_weight: float = 0.3,
-                       embed_weight: float = 0.7, index: Optional[StateIndex] = None) -> List[Dict]:
+                       embed_weight: float = 0.7, index: Optional[StateIndex] = None,
+                       time_range: Dict = None, recency_weight: float = 0.0) -> List[Dict]:
     """`hybrid_search` plus supersession.
 
     Every hit is annotated with its state, and when the store can resolve the questioned attribute
@@ -351,8 +352,11 @@ def state_aware_search(query: str, graph, k: int = 5, text_weight: float = 0.3,
     from .search import hybrid_search
 
     index = index or StateIndex.from_graph(graph)
+    # The fleet runs this path (state_aware is on in the plugin), so time filtering has to work
+    # here too — routing only the plain path would make the knobs dead in production.
     results = hybrid_search(query=query, graph=graph, k=k,
-                            text_weight=text_weight, embed_weight=embed_weight)
+                            text_weight=text_weight, embed_weight=embed_weight,
+                            time_range=time_range, recency_weight=recency_weight)
     resolved = index.resolve(query)
     for r in results:
         r["state"] = index.annotate(r["id"])
@@ -370,6 +374,8 @@ def state_aware_search(query: str, graph, k: int = 5, text_weight: float = 0.3,
         "id": target.get("memory_id"), "text": target.get("text") or _claim_sentence(resolved),
         "entities": [], "source": "supersession-resolution",
         "text_score": 0.0, "embed_score": 0.0, "combined_score": 1.0,
+        "timestamp": None, "age_days": None,
+        "timestamp": None, "age_days": None,
         "state": index.annotate(target.get("memory_id") or ""),
         "why": "%s (%s) — %s" % (resolved["subject"], resolved["attribute"], resolved["intent"]),
     })

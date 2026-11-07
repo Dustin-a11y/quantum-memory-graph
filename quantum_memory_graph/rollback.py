@@ -97,6 +97,9 @@ _PAIR_SHA_KEYS = frozenset({"graph.pkl", "graph.json"})
 _LEGACY_JSON_KEYS = frozenset({"node_count", "edge_count", "exported_at", "memories"})
 _TYPED_JSON_KEYS = _LEGACY_JSON_KEYS | frozenset({"semantic_schema_version", "semantic_facts"})
 _MEMORY_JSON_KEYS = frozenset({"id", "text", "source"})
+# Optional memory fields an export may add. Pairs written before timestamps existed omit it,
+# so the validator requires the base keys and permits these rather than demanding equality.
+_MEMORY_JSON_OPTIONAL = frozenset({"timestamp"})
 # A future attribute may contain a typed class old code cannot import. Reject
 # unknown persisted fields rather than silently carrying or discarding them.
 _GRAPH_ATTRS = frozenset({
@@ -386,10 +389,13 @@ def _validate_pair_consistency(graph: MemoryGraph, doc: Any, label: str) -> None
         raise ValueError(f"{label}: graph.json is missing its memory list")
     by_id: Dict[str, Any] = {}
     for entry in raw:
-        if (not isinstance(entry, dict) or set(entry) != _MEMORY_JSON_KEYS
+        if (not isinstance(entry, dict)
+                or not _MEMORY_JSON_KEYS <= set(entry)
+                or not set(entry) <= (_MEMORY_JSON_KEYS | _MEMORY_JSON_OPTIONAL)
                 or not isinstance(entry["id"], str) or not entry["id"]
                 or not isinstance(entry["text"], str)
-                or not isinstance(entry["source"], str)):
+                or not isinstance(entry["source"], str)
+                or not isinstance(entry.get("timestamp"), (str, type(None)))):
             raise ValueError(f"{label}: graph.json has malformed or unknown memory fields")
         if entry["id"] in by_id:
             raise ValueError(f"{label}: graph.json repeats a memory ID")
@@ -409,6 +415,13 @@ def _validate_pair_consistency(graph: MemoryGraph, doc: Any, label: str) -> None
         entry = by_id[mid]
         if entry["text"] != mem.text or entry["source"] != mem.source:
             raise ValueError(f"{label}: graph.json text/source disagrees with the pickle")
+        if "timestamp" in entry:
+            # The pickle is the source of truth; the export must agree with it or the pair is not a
+            # faithful copy and must not be accepted for recovery.
+            expected_ts = (mem.timestamp.isoformat()
+                           if getattr(mem, "timestamp", None) is not None else None)
+            if entry["timestamp"] != expected_ts:
+                raise ValueError(f"{label}: graph.json timestamp disagrees with the pickle")
         node = graph.graph.nodes[mid]
         if set(node) - {"memory"}:
             raise ValueError(f"{label}: graph node has unknown fields")

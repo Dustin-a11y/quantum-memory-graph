@@ -887,7 +887,18 @@ class MemoryGraph:
             "edge_count": self.graph.number_of_edges(),
             "exported_at": __import__("datetime").datetime.utcnow().isoformat(),
             "memories": [
-                {"id": mid, "text": mem.text, "source": getattr(mem, "source", "")}
+                {
+                    "id": mid,
+                    "text": mem.text,
+                    "source": getattr(mem, "source", ""),
+                    # Without this the export is the only copy of the corpus that cannot be placed
+                    # in time, so an offline analysis of chronology is impossible.
+                    "timestamp": (
+                        mem.timestamp.isoformat()
+                        if getattr(mem, "timestamp", None) is not None
+                        else None
+                    ),
+                }
                 for mid, mem in self.memories.items()
             ],
             "semantic_schema_version": 1,

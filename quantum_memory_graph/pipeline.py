@@ -99,6 +99,16 @@ def store(
     Returns:
         Dict with memory ID and graph stats
     """
+    # A memory with no timestamp can never be placed in time afterwards, and every recall feature
+    # that depends on chronology (state resolution, time ranges, recency) silently degrades to
+    # list order. Stamp at write time so new memories always carry evidence.
+    if timestamp is None:
+        timestamp = datetime.utcnow()
+    # A memory with no timestamp can never be placed in time afterwards, and every recall feature
+    # that depends on chronology (state resolution, time ranges, recency) silently degrades to
+    # list order. Stamp at write time so new memories always carry evidence.
+    if timestamp is None:
+        timestamp = datetime.utcnow()
     g = graph or get_graph()
     memory = g.add_memory(
         text=text, entities=entities, timestamp=timestamp,
@@ -221,7 +231,14 @@ def store_batch(
     sources: List[str] = None,
     graph: MemoryGraph = None,
 ) -> Dict:
-    """Batch store memories."""
+    """Batch store memories.
+
+    Timestamps default to the write time for the same reason single stores do: an untimed memory
+    drops out of every chronological feature.
+    """
+    if timestamps is None:
+        now = datetime.utcnow()
+        timestamps = [now] * len(texts)
     g = graph or get_graph()
     memories = g.add_memories_batch(
         texts=texts, entities_list=entities_list,
