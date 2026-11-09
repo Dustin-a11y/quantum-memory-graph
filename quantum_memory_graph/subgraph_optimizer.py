@@ -14,8 +14,19 @@ import numpy as np
 from itertools import combinations
 from typing import Dict
 
-from qiskit import QuantumCircuit
-from qiskit_aer import AerSimulator
+# qiskit is the optional `quantum` extra, not a core dependency: the production recall path is
+# classical (greedy) and QAOA is opt-in via QMG_RECALL_METHOD. These used to be top-level imports, so
+# installing the light core produced a package that could not be imported at all — the extras were
+# declared but unusable. Guarding them keeps `pip install quantum-memory-graph` honest; the QAOA
+# branch below already falls back to greedy when the simulator is unavailable.
+try:
+    from qiskit import QuantumCircuit
+    from qiskit_aer import AerSimulator
+    QISKIT_AVAILABLE = True
+except ImportError:  # pragma: no cover - the light install exercises this branch
+    QuantumCircuit = None
+    AerSimulator = None
+    QISKIT_AVAILABLE = False
 
 
 def optimize_subgraph(
@@ -75,6 +86,10 @@ def optimize_subgraph(
     qaoa_result = None
     
     try:
+        if not QISKIT_AVAILABLE:
+            raise ImportError(
+                "QAOA requires the optional 'quantum' extra: pip install 'quantum-memory-graph[quantum]'"
+            )
         simulator = AerSimulator()
         gamma_vals = np.linspace(0.1, np.pi, grid_size)
         beta_vals = np.linspace(0.1, np.pi / 2, grid_size)
