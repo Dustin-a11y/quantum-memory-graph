@@ -6,8 +6,6 @@ produced a package that raised ModuleNotFoundError on import. These tests pin th
 can never silently become mandatory again.
 """
 
-import pytest
-
 from quantum_memory_graph import subgraph_optimizer as so
 
 
